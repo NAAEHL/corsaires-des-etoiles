@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Corsaires des Étoiles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --void:#0A0D16;
+    --panel:#131A2B;
+    --panel-edge:#232E4A;
+    --ion:#4FE3C1;
+    --plasma:#FF3D81;
+    --amber:#FFB84D;
+    --text:#E8E6F0;
+    --text-dim:#8B93AC;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--void);color:var(--text);
+    font-family:'Space Grotesk',sans-serif;min-height:100vh;overflow-x:hidden;}
+  body{
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,.5) 0, transparent 40%),
+      radial-gradient(1px 1px at 65% 15%, rgba(255,255,255,.35) 0, transparent 40%),
+      radial-gradient(1.5px 1.5px at 80% 60%, rgba(255,255,255,.4) 0, transparent 40%),
+      radial-gradient(1px 1px at 40% 80%, rgba(255,255,255,.3) 0, transparent 40%),
+      radial-gradient(1px 1px at 90% 85%, rgba(255,255,255,.4) 0, transparent 40%),
+      radial-gradient(ellipse at 50% -10%, rgba(79,227,193,.08) 0%, transparent 55%);
+  }
+  .app{max-width:520px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;
+    padding:24px 20px 40px;}
+
+  h1.brand{font-family:'Orbitron',sans-serif;font-weight:800;font-size:26px;letter-spacing:1px;
+    text-align:center;margin:8px 0 4px;
+    background:linear-gradient(120deg,var(--ion),#8FD9FF 60%,var(--plasma));
+    -webkit-background-clip:text;background-clip:text;color:transparent;}
+  .subtitle{text-align:center;color:var(--text-dim);font-size:13px;letter-spacing:2px;
+    text-transform:uppercase;margin-bottom:32px;font-family:'JetBrains Mono',monospace;}
+
+  .screen{display:none;flex-direction:column;gap:16px;flex:1;}
+  .screen.active{display:flex;}
+
+  .btn{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;
+    padding:16px;border-radius:10px;border:1px solid var(--panel-edge);
+    background:var(--panel);color:var(--text);cursor:pointer;transition:.15s;text-align:center;}
+  .btn:active{transform:scale(.98);}
+  .btn.primary{background:linear-gradient(120deg,var(--ion),#2FBFA0);color:#06120E;border:none;}
+  .btn.ghost{background:transparent;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+
+  input[type=text]{font-family:'JetBrains Mono',monospace;font-size:18px;letter-spacing:2px;
+    padding:14px;border-radius:10px;border:1px solid var(--panel-edge);background:var(--panel);
+    color:var(--text);width:100%;text-transform:uppercase;text-align:center;}
+  input[type=text]::placeholder{color:var(--text-dim);letter-spacing:1px;text-transform:none;}
+  label{font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.5px;
+    font-family:'JetBrains Mono',monospace;margin-bottom:-6px;}
+
+  .error{color:var(--plasma);font-size:13px;font-family:'JetBrains Mono',monospace;text-align:center;
+    min-height:16px;}
+
+  .divider{display:flex;align-items:center;gap:12px;color:var(--text-dim);font-size:12px;
+    font-family:'JetBrains Mono',monospace;margin:4px 0;}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--panel-edge);}
+
+  /* --- Formation en cercle --- */
+  .orbit-wrap{position:relative;width:100%;aspect-ratio:1;max-width:380px;margin:12px auto;}
+  .orbit-ring{position:absolute;inset:8%;border-radius:50%;border:1px dashed var(--panel-edge);}
+  .orbit-ring::before{content:'';position:absolute;inset:18%;border-radius:50%;
+    border:1px solid rgba(79,227,193,.15);}
+  .orbit-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;font-family:'JetBrains Mono',monospace;color:var(--text-dim);font-size:11px;
+    text-align:center;letter-spacing:1px;}
+  .orbit-center b{color:var(--ion);font-size:22px;font-family:'Orbitron',sans-serif;display:block;}
+
+  .seat{position:absolute;width:78px;height:78px;margin-left:-39px;margin-top:-39px;
+    border-radius:50%;background:var(--panel);border:2px solid var(--panel-edge);
+    display:flex;align-items:center;justify-content:center;flex-direction:column;
+    transition:.3s;}
+  .seat.filled{border-color:var(--ion);box-shadow:0 0 18px rgba(79,227,193,.25);}
+  .seat.me{border-color:var(--amber);box-shadow:0 0 18px rgba(255,184,77,.3);}
+  .seat.dead{border-color:var(--plasma);opacity:.5;}
+  .seat .seat-name{font-size:11px;font-weight:700;max-width:64px;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;}
+  .seat .seat-role{font-size:9px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;
+    margin-top:2px;text-transform:uppercase;}
+  .seat .seat-empty{color:var(--text-dim);font-size:22px;}
+
+  .dist-label{position:absolute;font-family:'JetBrains Mono',monospace;font-size:10px;
+    color:var(--text-dim);background:var(--void);padding:1px 5px;border-radius:6px;}
+
+  .code-display{text-align:center;font-family:'JetBrains Mono',monospace;font-size:32px;
+    font-weight:600;letter-spacing:8px;color:var(--ion);margin:4px 0;}
+  .hint{text-align:center;color:var(--text-dim);font-size:13px;}
+
+  .role-card{background:var(--panel);border:1px solid var(--panel-edge);border-radius:14px;
+    padding:28px 20px;text-align:center;margin-top:8px;}
+  .role-card .role-icon{font-size:44px;margin-bottom:8px;}
+  .role-card .role-name{font-family:'Orbitron',sans-serif;font-size:20px;font-weight:800;
+    letter-spacing:1px;margin-bottom:8px;}
+  .role-card .role-desc{color:var(--text-dim);font-size:14px;line-height:1.5;}
+  .role-amiral .role-name{color:var(--amber);}
+  .role-pirate .role-name{color:var(--plasma);}
+  .role-mercenaire .role-name{color:#B98CFF;}
+
+  .status-bar{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim);
+    text-align:center;letter-spacing:1px;}
+  .status-bar .dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+    background:var(--ion);margin-right:6px;box-shadow:0 0 6px var(--ion);}
+
+  /* --- Écran de jeu --- */
+  .seat .life-row{display:flex;gap:2px;margin-top:2px;}
+  .seat .life-dot{width:6px;height:6px;border-radius:50%;background:var(--plasma);}
+  .seat .life-dot.on{background:var(--ion);box-shadow:0 0 4px var(--ion);}
+  .seat.turn{border-color:var(--amber);box-shadow:0 0 0 3px rgba(255,184,77,.25),0 0 18px rgba(255,184,77,.35);}
+  .seat.target-ok{cursor:pointer;border-color:var(--plasma);box-shadow:0 0 14px rgba(255,61,129,.4);}
+
+  .turn-banner{text-align:center;font-family:'JetBrains Mono',monospace;font-size:13px;
+    color:var(--text-dim);letter-spacing:1px;min-height:18px;}
+  .turn-banner.me{color:var(--amber);font-weight:600;}
+
+  .pending-box{background:var(--panel);border:1px solid var(--plasma);border-radius:12px;
+    padding:16px;text-align:center;}
+  .pending-box .pending-text{margin-bottom:12px;font-size:14px;}
+  .pending-box .pending-actions{display:flex;gap:10px;justify-content:center;}
+  .pending-box .btn{padding:10px 16px;font-size:14px;flex:1;}
+
+  .log-feed{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text-dim);
+    background:var(--panel);border:1px solid var(--panel-edge);border-radius:10px;
+    padding:10px 12px;max-height:88px;overflow-y:auto;display:flex;flex-direction:column-reverse;
+    gap:3px;}
+
+  .hand-area{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;min-height:52px;}
+  .card{background:var(--panel);border:1px solid var(--panel-edge);border-radius:10px;
+    padding:12px 14px;font-weight:700;font-size:14px;cursor:pointer;transition:.15s;
+    display:flex;flex-direction:column;align-items:center;gap:2px;min-width:64px;}
+  .card .card-icon{font-size:18px;}
+  .card.selected{border-color:var(--ion);background:rgba(79,227,193,.1);
+    box-shadow:0 0 12px rgba(79,227,193,.25);}
+  .card:active{transform:scale(.96);}
+  .card.disabled{opacity:.35;cursor:not-allowed;}
+
+  .action-bar{display:flex;gap:10px;}
+  .action-bar .btn{flex:1;padding:14px;font-size:14px;}
+
+  .winner-banner{text-align:center;padding:20px;}
+  .winner-banner .w-icon{font-size:52px;}
+  .winner-banner .w-title{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:800;
+    margin:10px 0;color:var(--amber);}
+
+  /* --- Sélection de personnage --- */
+  .char-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .char-card{background:var(--panel);border:1px solid var(--panel-edge);border-radius:12px;
+    padding:12px;cursor:pointer;transition:.15s;}
+  .char-card .cc-icon{font-size:26px;margin-bottom:4px;}
+  .char-card .cc-name{font-weight:700;font-size:13.5px;margin-bottom:4px;}
+  .char-card .cc-desc{font-size:11px;color:var(--text-dim);line-height:1.4;margin-bottom:6px;}
+  .char-card .cc-power{font-size:10.5px;color:var(--ion);font-family:'JetBrains Mono',monospace;
+    line-height:1.4;}
+  .char-card.taken{opacity:.3;cursor:not-allowed;filter:grayscale(1);}
+  .char-card.mine{border-color:var(--ion);box-shadow:0 0 14px rgba(79,227,193,.3);}
+  .char-card:active{transform:scale(.97);}
+
+  .char-reveal{background:var(--panel);border:1px solid var(--panel-edge);border-radius:12px;
+    padding:14px;margin-top:-4px;}
+  .char-reveal .cr-name{font-weight:700;font-size:14px;margin-bottom:4px;}
+  .char-reveal .cr-power{font-size:12px;color:var(--ion);font-family:'JetBrains Mono',monospace;}
+
+  .power-badge{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ion);
+    background:var(--panel);border:1px solid var(--panel-edge);border-radius:8px;
+    padding:6px 10px;text-align:center;}
+  .power-btn{background:linear-gradient(120deg,rgba(79,227,193,.2),rgba(79,227,193,.08));
+    border:1px solid var(--ion);color:var(--ion);}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1 class="brand">CORSAIRES DES ÉTOILES</h1>
+  <div class="subtitle">— duel spatial à quatre —</div>
+
+  <!-- ÉCRAN 1 : accueil -->
+  <div class="screen active" id="screen-home">
+    <button class="btn primary" id="btn-create">Créer une partie</button>
+    <div class="divider">ou</div>
+    <button class="btn ghost" id="btn-join-open">Rejoindre avec un code</button>
+    <div id="join-panel" style="display:none;flex-direction:column;gap:12px;">
+      <label>Code de la partie</label>
+      <input type="text" id="input-code" maxlength="4" placeholder="XXXX">
+      <label>Ton nom</label>
+      <input type="text" id="input-name-join" maxlength="16" placeholder="Pseudo">
+      <button class="btn primary" id="btn-join-confirm">Rejoindre</button>
+    </div>
+    <div class="error" id="home-error"></div>
+  </div>
+
+  <!-- ÉCRAN 1b : création (nom) -->
+  <div class="screen" id="screen-create-name">
+    <label>Ton nom</label>
+    <input type="text" id="input-name-create" maxlength="16" placeholder="Pseudo">
+    <button class="btn primary" id="btn-create-confirm">Lancer le lobby</button>
+    <button class="btn ghost" id="btn-create-back">Retour</button>
+    <div class="error" id="create-error"></div>
+  </div>
+
+  <!-- ÉCRAN 1c : sélection de personnage -->
+  <div class="screen" id="screen-character">
+    <div class="hint" style="margin-bottom:4px;">Choisis ton personnage</div>
+    <div class="char-grid" id="char-grid"></div>
+  </div>
+
+  <!-- ÉCRAN 2 : lobby / cercle -->
+  <div class="screen" id="screen-lobby">
+    <div class="code-display" id="lobby-code">----</div>
+    <div class="hint">Donne ce code aux 3 autres joueurs</div>
+    <div class="orbit-wrap" id="orbit"></div>
+    <div class="status-bar" id="lobby-status"><span class="dot"></span>En attente de joueurs…</div>
+    <button class="btn primary" id="btn-start" style="display:none;">Lancer la partie</button>
+  </div>
+
+  <!-- ÉCRAN 3 : révélation du rôle -->
+  <div class="screen" id="screen-role">
+    <div class="role-card" id="role-card">
+      <div class="role-icon" id="role-icon">🛰️</div>
+      <div class="role-name" id="role-name">—</div>
+      <div class="role-desc" id="role-desc">—</div>
+    </div>
+    <div class="char-reveal" id="char-reveal"></div>
+    <div class="orbit-wrap" id="orbit-2"></div>
+    <button class="btn primary" id="btn-to-game">C'est parti</button>
+  </div>
+
+  <!-- ÉCRAN 4 : partie en cours -->
+  <div class="screen" id="screen-game">
+    <div class="orbit-wrap" id="orbit-3"></div>
+    <div class="turn-banner" id="turn-banner">—</div>
+    <div class="pending-box" id="pending-box" style="display:none;"></div>
+    <div id="power-panel"></div>
+    <div class="log-feed" id="log-feed"></div>
+    <div class="hand-area" id="hand-area"></div>
+    <div class="action-bar" id="action-bar"></div>
+  </div>
+</div>
+
+<script>
+/* ---------- Config Supabase ---------- */
+// ⚠️ Remplace par les identifiants de TON projet Supabase (mêmes que party-games / bioleach-lab
+// si tu veux réutiliser le même projet, ou un nouveau projet dédié).
+const SUPABASE_URL = 'https://cznsjfafojqtggcfqdet.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6bnNqZmFmb2pxdGdnY2ZxZGV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MTY0MTIsImV4cCI6MjA5Njk5MjQxMn0.2GTqKmSaMi7ZzDmHnsNo6PyjHirwRnKFCxTXmAMECUk';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ---------- État local ---------- */
+let state = {
+  roomId: null,
+  roomCode: null,
+  playerId: null,
+  seatIndex: null,
+  isHost: false,
+  players: [],   // [{id, seat_index, name, role, is_host, is_alive}]
+  channel: null,
+};
+
+const ROLE_INFO = {
+  amiral: {
+    icon: '👑', name: 'AMIRAL', cls: 'role-amiral',
+    desc: "Ton identité est connue de tous. Les Pirates Rebelles veulent ta mort. Survis et élimine tes ennemis."
+  },
+  pirate: {
+    icon: '☠️', name: 'PIRATE REBELLE', cls: 'role-pirate',
+    desc: "Secret. Toi et l'autre Pirate devez abattre l'Amiral. Coordonnez-vous sans vous dévoiler."
+  },
+  mercenaire: {
+    icon: '🌀', name: 'MERCENAIRE SOLITAIRE', cls: 'role-mercenaire',
+    desc: "Secret. Tu ne gagnes que si tu es le dernier survivant. Personne n'est ton allié."
+  }
+};
+
+const CHARACTERS = [
+  { id:'zovienne', name:'Zovienne Prévost', icon:'🕵️‍♀️',
+    desc:"Blonde platine, regard bleu glacial, combinaison tactique sans fioritures.",
+    power:"Voit à tout moment la carte du dessus de la pioche.", powerType:'passive_peek' },
+  { id:'amihan', name:'Amihan Cruz', icon:'✈️',
+    desc:"Peau mate, cheveux noirs longs attachés, tenue de pilote usée par le voyage.",
+    power:"Une fois par partie, ignore la distance pour un tir.", powerType:'once_ignore_range' },
+  { id:'elia', name:'Elia Chève', icon:'🗡️',
+    desc:"Silhouette élancée, chignon haut soigné, précision chirurgicale plutôt que force brute.",
+    power:"Ses tirs infligent 1 dégât de plus si la cible est déjà blessée.", powerType:'always_bonus_dmg_wounded' },
+  { id:'krysalla', name:'Krysalla Ossa', icon:'💎',
+    desc:"Peau cristalline semi-translucide, pas de visage fixe — des motifs internes pulsent.",
+    power:"Renvoie le premier tir qu'elle subit vers un joueur adjacent au hasard.", powerType:'once_reflect_first_hit' },
+  { id:'kantu', name:'Kantu Vey', icon:'🔄',
+    desc:"Chitine iridescente changeant de teinte, deux paires d'yeux facettés, mouvements précis.",
+    power:"Une fois par tour, défausse une carte pour en piocher une nouvelle.", powerType:'per_turn_swap_draw' },
+  { id:'talia', name:'Talia Vance', icon:'🌑',
+    desc:"Haute stature, tissus sombres superposés, visage caché, deux points lumineux froids dans l'ombre.",
+    power:"Commence la partie avec 1 carte de plus en main.", powerType:'start_extra_card' },
+  { id:'alix', name:'Alix Aeverse', icon:'♾️',
+    desc:"Silhouette fine et androgyne, peau à reflets changeants, traits doux et symétriques.",
+    power:"Une fois par partie, transforme une carte Tir! en Esquive! (ou l'inverse).", powerType:'once_swap_card_type' },
+  { id:'bastien', name:'Bastien Roc', icon:'🛡️',
+    desc:"Carrure massive, armure improvisée en plaques de coque de vaisseau, cicatrices.",
+    power:"Tirs illimités même sans arme spéciale équipée.", powerType:'flavor_only' },
+  { id:'milo', name:'Milo Chance', icon:'🍀',
+    desc:"Sourire en coin, veste élimée couverte de badges, regard rusé de contrebandier.",
+    power:"Pioche une carte à chaque fois qu'il subit des dégâts.", powerType:'always_draw_on_damage' },
+  { id:'fyoom', name:'Fyoom', icon:'💨',
+    desc:"Entité gazeuse/plasmique en combinaison pressurisée transparente, forme changeante.",
+    power:"Une fois par partie, ignore la distance pour un tir.", powerType:'once_ignore_range' },
+  { id:'krebon', name:'Krebon', icon:'♻️',
+    desc:"Corps trapu et grumeleux, excroissances irrégulières, plusieurs petits yeux mal alignés.",
+    power:"La première fois qu'il tombe à 1 vie, régénère automatiquement 1 vie.", powerType:'once_heal_at_1hp' },
+  { id:'osmalin', name:'Osmalin', icon:'🧠',
+    desc:"Silhouette élancée à quatre bras fins, peau minérale gris-bleu texturée, voix grave et posée.",
+    power:"Au début de son tour, pioche 4 cartes et n'en garde que 2.", powerType:'draw4_keep2' },
+];
+function getChar(id){ return CHARACTERS.find(c => c.id === id); }
+
+/* ---------- Navigation ---------- */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* ---------- Écran accueil ---------- */
+document.getElementById('btn-create').onclick = () => showScreen('screen-create-name');
+document.getElementById('btn-create-back').onclick = () => showScreen('screen-home');
+document.getElementById('btn-join-open').onclick = () => {
+  document.getElementById('join-panel').style.display = 'flex';
+};
+
+function randomCode(){
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let out = '';
+  for(let i=0;i<4;i++) out += chars[Math.floor(Math.random()*chars.length)];
+  return out;
+}
+
+/* ---------- Créer une partie ---------- */
+document.getElementById('btn-create-confirm').onclick = async () => {
+  const name = document.getElementById('input-name-create').value.trim();
+  const errEl = document.getElementById('create-error');
+  errEl.textContent = '';
+  if(!name){ errEl.textContent = 'Entre un nom.'; return; }
+
+  const code = randomCode();
+  const { data: room, error: roomErr } = await sb.from('caes_rooms')
+    .insert({ code, status: 'lobby' }).select().single();
+  if(roomErr){ errEl.textContent = 'Erreur de création. Réessaie.'; console.error(roomErr); return; }
+
+  const { data: player, error: playerErr } = await sb.from('caes_players')
+    .insert({ room_id: room.id, seat_index: 0, name, is_host: true }).select().single();
+  if(playerErr){ errEl.textContent = 'Erreur de création. Réessaie.'; console.error(playerErr); return; }
+
+  state.roomId = room.id;
+  state.roomCode = room.code;
+  state.playerId = player.id;
+  state.seatIndex = 0;
+  state.isHost = true;
+
+  enterLobby();
+};
+
+/* ---------- Rejoindre une partie ---------- */
+document.getElementById('btn-join-confirm').onclick = async () => {
+  const code = document.getElementById('input-code').value.trim().toUpperCase();
+  const name = document.getElementById('input-name-join').value.trim();
+  const errEl = document.getElementById('home-error');
+  errEl.textContent = '';
+  if(!code || !name){ errEl.textContent = 'Entre un code et un nom.'; return; }
+
+  const { data: room, error: roomErr } = await sb.from('caes_rooms')
+    .select('*').eq('code', code).maybeSingle();
+  if(roomErr || !room){ errEl.textContent = 'Code introuvable.'; return; }
+  if(room.status !== 'lobby'){ errEl.textContent = 'Cette partie a déjà commencé.'; return; }
+
+  const { data: existingPlayers, error: playersErr } = await sb.from('caes_players')
+    .select('*').eq('room_id', room.id).order('seat_index');
+  if(playersErr){ errEl.textContent = 'Erreur. Réessaie.'; return; }
+  if(existingPlayers.length >= 4){ errEl.textContent = 'Partie complète (4/4).'; return; }
+
+  const takenSeats = existingPlayers.map(p => p.seat_index);
+  let seat = 0;
+  while(takenSeats.includes(seat)) seat++;
+
+  const { data: player, error: insErr } = await sb.from('caes_players')
+    .insert({ room_id: room.id, seat_index: seat, name, is_host: false }).select().single();
+  if(insErr){ errEl.textContent = 'Erreur en rejoignant. Réessaie.'; console.error(insErr); return; }
+
+  state.roomId = room.id;
+  state.roomCode = room.code;
+  state.playerId = player.id;
+  state.seatIndex = seat;
+  state.isHost = false;
+
+  enterLobby();
+};
+
+/* ---------- Lobby ---------- */
+async function enterLobby(){
+  document.getElementById('lobby-code').textContent = state.roomCode;
+  subscribeRealtime();
+  await refreshPlayers();
+  showScreen('screen-character');
+  renderCharGrid();
+}
+
+/* ---------- Sélection de personnage ---------- */
+function renderCharGrid(){
+  const grid = document.getElementById('char-grid');
+  grid.innerHTML = '';
+  const taken = new Set(state.players.filter(p => p.character && p.id !== state.playerId).map(p => p.character));
+  const me = state.players.find(p => p.id === state.playerId);
+  CHARACTERS.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'char-card' + (taken.has(c.id) ? ' taken' : '') + (me && me.character === c.id ? ' mine' : '');
+    el.innerHTML = `<div class="cc-icon">${c.icon}</div><div class="cc-name">${c.name}</div>
+      <div class="cc-desc">${c.desc}</div><div class="cc-power">${c.power}</div>`;
+    if(!taken.has(c.id)){
+      el.onclick = () => chooseCharacter(c.id);
+    }
+    grid.appendChild(el);
+  });
+}
+
+async function chooseCharacter(charId){
+  await sb.from('caes_players').update({ character: charId }).eq('id', state.playerId);
+  await refreshPlayers();
+  showScreen('screen-lobby');
+}
+
+async function refreshPlayers(){
+  const { data, error } = await sb.from('caes_players')
+    .select('*').eq('room_id', state.roomId).order('seat_index');
+  if(error){ console.error(error); return; }
+  state.players = data;
+  if(document.getElementById('screen-lobby').classList.contains('active')){
+    renderOrbit('orbit', state.players, false);
+    updateLobbyStatus();
+  } else if(document.getElementById('screen-character').classList.contains('active')){
+    renderCharGrid();
+  }
+}
+
+function updateLobbyStatus(){
+  const n = state.players.length;
+  const allChosen = n === 4 && state.players.every(p => p.character);
+  const statusEl = document.getElementById('lobby-status');
+  const startBtn = document.getElementById('btn-start');
+  if(n < 4){
+    statusEl.innerHTML = `<span class="dot"></span>${n}/4 joueurs connectés…`;
+    startBtn.style.display = 'none';
+  } else if(!allChosen){
+    const waiting = state.players.filter(p => !p.character).map(p => p.name).join(', ');
+    statusEl.innerHTML = `<span class="dot"></span>En attente du choix de perso : ${waiting}`;
+    startBtn.style.display = 'none';
+  } else {
+    statusEl.innerHTML = `<span class="dot" style="background:var(--amber);box-shadow:0 0 6px var(--amber);"></span>4/4 — prêt à décoller`;
+    startBtn.style.display = state.isHost ? 'block' : 'none';
+    if(!state.isHost) statusEl.innerHTML += '<br>En attente que l\'hôte lance la partie…';
+  }
+}
+
+/* ---------- Rendu du cercle (formation) ---------- */
+function renderOrbit(containerId, players, revealAll){
+  const wrap = document.getElementById(containerId);
+  wrap.innerHTML = '<div class="orbit-ring"></div><div class="orbit-center"><b>' +
+    players.length + '/4</b>ÉQUIPAGE</div>';
+  const radius = 42; // % du conteneur
+  const seats = [0,1,2,3];
+  seats.forEach(seatIdx => {
+    const angle = (Math.PI * 2 * seatIdx / 4) - Math.PI/2; // seat 0 en haut
+    const cx = 50 + radius * Math.cos(angle);
+    const cy = 50 + radius * Math.sin(angle);
+    const p = players.find(pl => pl.seat_index === seatIdx);
+    const seatEl = document.createElement('div');
+    seatEl.className = 'seat';
+    seatEl.style.left = cx + '%';
+    seatEl.style.top = cy + '%';
+    if(p){
+      seatEl.classList.add('filled');
+      if(p.id === state.playerId) seatEl.classList.add('me');
+      if(p.is_alive === false) seatEl.classList.add('dead');
+      let roleLabel = '';
+      if(revealAll){
+        if(p.role === 'amiral') roleLabel = 'Amiral';
+        else if(p.id === state.playerId && p.role) roleLabel = ROLE_INFO[p.role].name.split(' ')[0];
+        else if(p.role) roleLabel = '???';
+      }
+      const charIcon = p.character ? getChar(p.character).icon + ' ' : '';
+      seatEl.innerHTML = `<div class="seat-name">${charIcon}${escapeHtml(p.name)}</div>` +
+        (roleLabel ? `<div class="seat-role">${roleLabel}</div>` : '');
+    } else {
+      seatEl.innerHTML = '<div class="seat-empty">＋</div>';
+    }
+    wrap.appendChild(seatEl);
+  });
+  // distances entre sièges adjacents (portée = nb de pas dans le cercle)
+  seats.forEach(seatIdx => {
+    const nextIdx = (seatIdx + 1) % 4;
+    const a1 = (Math.PI * 2 * seatIdx / 4) - Math.PI/2;
+    const a2 = (Math.PI * 2 * nextIdx / 4) - Math.PI/2;
+    const mid = (a1 + a2) / 2 + (nextIdx === 0 ? Math.PI : 0);
+    const midAngle = ((a1 + a2) / 2);
+    const lx = 50 + (radius + 8) * Math.cos((a1+a2)/2);
+    const ly = 50 + (radius + 8) * Math.sin((a1+a2)/2);
+    const label = document.createElement('div');
+    label.className = 'dist-label';
+    label.style.left = lx + '%';
+    label.style.top = ly + '%';
+    label.style.transform = 'translate(-50%,-50%)';
+    label.textContent = '1';
+    wrap.appendChild(label);
+  });
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* ---------- Lancer la partie (assignation des rôles + init moteur) ---------- */
+document.getElementById('btn-start').onclick = async () => {
+  if(state.players.length !== 4) return;
+  const roles = shuffle(['amiral','pirate','pirate','mercenaire']);
+  const sorted = [...state.players].sort((a,b) => a.seat_index - b.seat_index);
+
+  let deck = buildDeck();
+  const updates = sorted.map((p, i) => {
+    const handSize = p.character === 'talia' ? 5 : 4;
+    const hand = deck.splice(0, handSize);
+    return sb.from('caes_players').update({
+      role: roles[i], life: 4, hand, weapon: 'pistolet_laser', is_alive: true, power_used: false
+    }).eq('id', p.id);
+  });
+  await Promise.all(updates);
+
+  const admiralSeat = sorted[roles.indexOf('amiral')].seat_index;
+  const gameState = {
+    deck, discard: [], turnSeat: admiralSeat, phase: 'draw',
+    pendingShot: null, log: ['La partie commence.'], winner: null, turnSwapUsed: false
+  };
+  await sb.from('caes_rooms').update({ status: 'playing', game_state: gameState }).eq('id', state.roomId);
+  // La transition d'écran se fait via l'abonnement realtime pour tout le monde, y compris l'hôte.
+};
+
+document.getElementById('btn-to-game').onclick = () => { showScreen('screen-game'); renderGame(); };
+
+/* ==================================================================
+   MOTEUR DE TOUR — noyau (distance, Tir!, Esquive!, victoire)
+   ================================================================== */
+const WEAPON_RANGE = { pistolet_laser: 1 };
+const CARD_INFO = { tir: { icon: '🔫', label: 'Tir!' }, esquive: { icon: '🌀', label: 'Esquive!' } };
+
+function buildDeck(){
+  let cards = [];
+  for(let i=0;i<16;i++) cards.push('tir');
+  for(let i=0;i<14;i++) cards.push('esquive');
+  return shuffle(cards);
+}
+
+function getAliveOrderedSeats(players){
+  return players.filter(p => p.is_alive).sort((a,b) => a.seat_index - b.seat_index).map(p => p.seat_index);
+}
+
+function distanceBetween(fromSeat, toSeat, players){
+  const order = getAliveOrderedSeats(players);
+  const iF = order.indexOf(fromSeat), iT = order.indexOf(toSeat);
+  if(iF === -1 || iT === -1) return Infinity;
+  const n = order.length;
+  const diff = Math.abs(iF - iT);
+  return Math.min(diff, n - diff);
+}
+
+async function fetchRoom(){
+  const { data } = await sb.from('caes_rooms').select('*').eq('id', state.roomId).single();
+  return data;
+}
+
+async function saveGameState(gs){
+  await sb.from('caes_rooms').update({ game_state: gs }).eq('id', state.roomId);
+}
+
+let selectedCardIdx = null;
+let powerRangeMode = false;   // Amihan / Fyoom : ignorer la portée pour le prochain tir
+let powerSwapPickMode = false; // Alix Aeverse : choisir une carte à convertir
+let keep2Selection = [];       // Osmalin : indices des 2 cartes à garder après pioche de 4
+
+async function renderGame(){
+  const room = await fetchRoom();
+  await refreshPlayers();
+  const gs = room.game_state || {};
+  const me = state.players.find(p => p.id === state.playerId);
+  if(!me) return;
+
+  if(gs.winner){ renderWinner(gs); return; }
+
+  renderOrbitGame(gs);
+  renderTurnBanner(gs, me);
+  renderLog(gs);
+  renderPendingBox(gs, me);
+  renderHand(gs, me);
+  renderActionBar(gs, me);
+  renderPowerPanel(gs, me);
+
+  // Auto-draw en début de tour (le joueur dont c'est le tour tire 2 cartes)
+  if(gs.turnSeat === me.seat_index && gs.phase === 'draw' && !gs.pendingShot){
+    await doDraw(gs, me);
+  }
+}
+
+function renderOrbitGame(gs){
+  const wrap = document.getElementById('orbit-3');
+  wrap.innerHTML = '<div class="orbit-ring"></div><div class="orbit-center"><b>' +
+    state.players.filter(p=>p.is_alive).length + '/4</b>EN VIE</div>';
+  const radius = 42;
+  [0,1,2,3].forEach(seatIdx => {
+    const angle = (Math.PI * 2 * seatIdx / 4) - Math.PI/2;
+    const cx = 50 + radius * Math.cos(angle);
+    const cy = 50 + radius * Math.sin(angle);
+    const p = state.players.find(pl => pl.seat_index === seatIdx);
+    const seatEl = document.createElement('div');
+    seatEl.className = 'seat';
+    seatEl.style.left = cx + '%';
+    seatEl.style.top = cy + '%';
+    if(p){
+      seatEl.classList.add('filled');
+      if(p.id === state.playerId) seatEl.classList.add('me');
+      if(!p.is_alive) seatEl.classList.add('dead');
+      if(gs.turnSeat === p.seat_index && p.is_alive) seatEl.classList.add('turn');
+
+      const me = state.players.find(pl => pl.id === state.playerId);
+      const inRange = me && distanceBetween(me.seat_index, p.seat_index, state.players) <= WEAPON_RANGE[me.weapon || 'pistolet_laser'];
+      const canTarget = me && me.is_alive && p.is_alive && p.id !== me.id &&
+        gs.turnSeat === me.seat_index && gs.phase === 'action' && !gs.pendingShot &&
+        selectedCardIdx !== null && me.hand[selectedCardIdx] === 'tir' &&
+        (inRange || powerRangeMode);
+      if(canTarget){
+        seatEl.classList.add('target-ok');
+        seatEl.onclick = () => fireShot(p);
+      }
+
+      let roleLabel = (p.role === 'amiral') ? 'Amiral' : (p.id === state.playerId ? ROLE_INFO[p.role].name.split(' ')[0] : '');
+      const lifeRow = Array.from({length:4}).map((_,i) =>
+        `<span class="life-dot ${i < p.life ? 'on':''}"></span>`).join('');
+      seatEl.innerHTML = `<div class="seat-name">${escapeHtml(p.name)}</div>` +
+        (roleLabel ? `<div class="seat-role">${roleLabel}</div>` : '') +
+        `<div class="life-row">${lifeRow}</div>`;
+    } else {
+      seatEl.innerHTML = '<div class="seat-empty">＋</div>';
+    }
+    wrap.appendChild(seatEl);
+  });
+}
+
+function renderTurnBanner(gs, me){
+  const el = document.getElementById('turn-banner');
+  const turnPlayer = state.players.find(p => p.seat_index === gs.turnSeat);
+  if(!turnPlayer){ el.textContent=''; return; }
+  if(turnPlayer.id === me.id){
+    el.textContent = "À toi de jouer";
+    el.classList.add('me');
+  } else {
+    el.textContent = `Tour de ${turnPlayer.name}…`;
+    el.classList.remove('me');
+  }
+}
+
+function renderLog(gs){
+  const el = document.getElementById('log-feed');
+  const lines = (gs.log || []).slice(-6).reverse();
+  el.innerHTML = lines.map(l => `<div>${escapeHtml(l)}</div>`).join('');
+}
+
+let reflectInProgress = false;
+
+function renderPendingBox(gs, me){
+  const box = document.getElementById('pending-box');
+  if(!gs.pendingShot){ box.style.display = 'none'; reflectInProgress = false; return; }
+  box.style.display = 'block';
+  const shooter = state.players.find(p => p.seat_index === gs.pendingShot.fromSeat);
+  const target = state.players.find(p => p.seat_index === gs.pendingShot.toSeat);
+  if(target && target.id === me.id){
+    if(target.character === 'krysalla' && !target.power_used){
+      box.innerHTML = `<div class="pending-text">💎 Ton bouclier cristallin renvoie ce tir automatiquement…</div>`;
+      if(!reflectInProgress){ reflectInProgress = true; resolveReflect(); }
+      return;
+    }
+    box.innerHTML = `<div class="pending-text">${escapeHtml(shooter.name)} te tire dessus !</div>
+      <div class="pending-actions">
+        <button class="btn" id="btn-dodge">🌀 Esquiver</button>
+        <button class="btn" id="btn-take-hit">💥 Encaisser</button>
+      </div>`;
+    const hasEsquive = me.hand.includes('esquive');
+    const dodgeBtn = document.getElementById('btn-dodge');
+    if(!hasEsquive) dodgeBtn.disabled = true;
+    dodgeBtn.onclick = () => resolveShot(true);
+    document.getElementById('btn-take-hit').onclick = () => resolveShot(false);
+  } else {
+    box.innerHTML = `<div class="pending-text">${escapeHtml(shooter.name)} tire sur ${escapeHtml(target.name)}, en attente de réponse…</div>`;
+  }
+}
+
+async function resolveReflect(){
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  if(!gs.pendingShot){ reflectInProgress = false; return; }
+  const target = state.players.find(p => p.seat_index === gs.pendingShot.toSeat); // Krysalla
+  const order = getAliveOrderedSeats(state.players);
+  const idx = order.indexOf(target.seat_index);
+  const neighborSeats = [order[(idx+1)%order.length], order[(idx-1+order.length)%order.length]]
+    .filter(s => s !== target.seat_index);
+  const chosenSeat = neighborSeats[Math.floor(Math.random()*neighborSeats.length)];
+  const newTarget = state.players.find(p => p.seat_index === chosenSeat);
+
+  await sb.from('caes_players').update({ power_used: true }).eq('id', target.id);
+  let log = [...gs.log, `${target.name} renvoie le tir vers ${newTarget.name} !`];
+  const { newLife, healed } = applyDamageWithPowers(null, newTarget, 1);
+  await sb.from('caes_players').update({ life: newLife, is_alive: newLife > 0,
+    power_used: healed ? true : newTarget.power_used }).eq('id', newTarget.id);
+  log.push(healed ? `${newTarget.name} tombe à 1 vie mais régénère aussitôt (${newLife}/4).`
+                   : `${newTarget.name} encaisse ${1}${''} dégât (${newLife}/4).`);
+  if(newLife <= 0) log.push(`💀 ${newTarget.name} est éliminé.`);
+
+  await refreshPlayers();
+  const victory = checkVictory(state.players);
+  await saveGameState({ ...gs, pendingShot: null, log, winner: victory ? victory.winner : null });
+  reflectInProgress = false;
+}
+
+// Calcule les dégâts finaux en tenant compte des pouvoirs Elia (bonus) et Krebon (soin à 1 pv).
+// shooter peut être null (cas du renvoi de Krysalla, dégât brut).
+function applyDamageWithPowers(shooter, target, baseDmg){
+  let dmg = baseDmg;
+  if(shooter && shooter.character === 'elia' && target.life < 4) dmg += 1;
+  let newLife = Math.max(0, target.life - dmg);
+  let healed = false;
+  if(newLife === 1 && target.character === 'krebon' && !target.power_used){
+    newLife = 2;
+    healed = true;
+  }
+  return { newLife, healed };
+}
+
+async function resolveShot(dodged){
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  if(!gs.pendingShot) return;
+  const target = state.players.find(p => p.seat_index === gs.pendingShot.toSeat);
+  const shooter = state.players.find(p => p.seat_index === gs.pendingShot.fromSeat);
+  let log = [...gs.log];
+  let deck = gs.deck, discard = gs.discard;
+
+  if(dodged){
+    const newHand = [...target.hand];
+    const eIdx = newHand.indexOf('esquive');
+    if(eIdx !== -1) newHand.splice(eIdx, 1);
+    await sb.from('caes_players').update({ hand: newHand }).eq('id', target.id);
+    log.push(`${target.name} esquive le tir !`);
+  } else {
+    const { newLife, healed } = applyDamageWithPowers(shooter, target, 1);
+    const targetUpdate = { life: newLife, is_alive: newLife > 0 };
+    if(healed) targetUpdate.power_used = true;
+
+    // Milo Chance : pioche une carte en encaissant des dégâts.
+    let milkDrawn = null;
+    if(target.character === 'milo'){
+      if(deck.length < 1){ deck = shuffle([...deck, ...discard]); discard = []; }
+      milkDrawn = deck.splice(0,1)[0];
+      targetUpdate.hand = [...target.hand, milkDrawn];
+    }
+    await sb.from('caes_players').update(targetUpdate).eq('id', target.id);
+
+    log.push(healed ? `${target.name} tombe à 1 vie mais régénère aussitôt (${newLife}/4).`
+                     : `${target.name} encaisse des dégâts (${newLife}/4).`);
+    if(milkDrawn) log.push(`${target.name} pioche 1 carte (pouvoir).`);
+    if(newLife <= 0) log.push(`💀 ${target.name} est éliminé.`);
+  }
+
+  await refreshPlayers();
+  const victory = checkVictory(state.players);
+
+  const newGs = { ...gs, deck, discard, pendingShot: null, log,
+    winner: victory ? victory.winner : null };
+  await saveGameState(newGs);
+}
+
+function renderHand(gs, me){
+  const el = document.getElementById('hand-area');
+  el.innerHTML = '';
+  const isKeep2 = gs.phase === 'keep2' && gs.turnSeat === me.seat_index;
+  const myTurn = gs.turnSeat === me.seat_index && gs.phase === 'action' && !gs.pendingShot;
+  (me.hand || []).forEach((card, idx) => {
+    const info = CARD_INFO[card];
+    const c = document.createElement('div');
+    const isSelected = isKeep2 ? keep2Selection.includes(idx) : selectedCardIdx === idx;
+    const isDisabled = isKeep2 ? false : (!myTurn || card !== 'tir');
+    c.className = 'card' + (isSelected ? ' selected' : '') + (isDisabled ? ' disabled' : '');
+    c.innerHTML = `<div class="card-icon">${info.icon}</div><div>${info.label}</div>`;
+    if(isKeep2){
+      c.classList.remove('disabled');
+      c.onclick = () => {
+        if(keep2Selection.includes(idx)) keep2Selection = keep2Selection.filter(i => i !== idx);
+        else if(keep2Selection.length < 2) keep2Selection = [...keep2Selection, idx];
+        renderGame();
+      };
+    } else if(myTurn && card === 'tir'){
+      c.onclick = () => { selectedCardIdx = (selectedCardIdx === idx ? null : idx); renderGame(); };
+    }
+    el.appendChild(c);
+  });
+}
+
+function renderPowerPanel(gs, me){
+  const el = document.getElementById('power-panel');
+  el.innerHTML = '';
+  const myTurn = gs.turnSeat === me.seat_index && gs.phase === 'action' && !gs.pendingShot;
+
+  // Zovienne Prévost : voit la carte du dessus de la pioche, en permanence.
+  if(me.character === 'zovienne' && gs.deck && gs.deck.length){
+    const info = CARD_INFO[gs.deck[0]];
+    const badge = document.createElement('div');
+    badge.className = 'power-badge';
+    badge.textContent = `👁️ Prochaine carte : ${info.icon} ${info.label}`;
+    el.appendChild(badge);
+  }
+
+  if(!myTurn) return;
+
+  // Amihan Cruz / Fyoom : activer le tir longue portée pour la prochaine cible.
+  if((me.character === 'amihan' || me.character === 'fyoom') && !me.power_used){
+    const btn = document.createElement('button');
+    btn.className = 'btn power-btn';
+    btn.style.marginBottom = '8px';
+    btn.textContent = powerRangeMode ? '📡 Pouvoir activé — choisis une cible (Tir!)' : '📡 Activer le pouvoir : ignorer la distance';
+    btn.onclick = () => { powerRangeMode = !powerRangeMode; renderGame(); };
+    el.appendChild(btn);
+  }
+
+  // Kantu Vey : une fois par tour, défausse une carte sélectionnée pour en piocher une autre.
+  if(me.character === 'kantu' && !gs.turnSwapUsed && selectedCardIdx !== null){
+    const btn = document.createElement('button');
+    btn.className = 'btn power-btn';
+    btn.style.marginBottom = '8px';
+    btn.textContent = '🔄 Défausser cette carte et en piocher une autre';
+    btn.onclick = () => kantuSwapDraw(gs, me);
+    el.appendChild(btn);
+  }
+
+  // Alix Aeverse : une fois par partie, convertit une carte sélectionnée (Tir! <-> Esquive!).
+  if(me.character === 'alix' && !me.power_used && selectedCardIdx !== null){
+    const btn = document.createElement('button');
+    btn.className = 'btn power-btn';
+    btn.style.marginBottom = '8px';
+    btn.textContent = '♾️ Convertir cette carte';
+    btn.onclick = () => alixConvertCard(me);
+    el.appendChild(btn);
+  }
+}
+
+async function kantuSwapDraw(gs, me){
+  if(selectedCardIdx === null) return;
+  const room = await fetchRoom();
+  const freshGs = room.game_state;
+  if(freshGs.turnSwapUsed) return;
+  let { deck, discard } = freshGs;
+  if(deck.length < 1){ deck = shuffle([...deck, ...discard]); discard = []; }
+  const drawn = deck.splice(0,1)[0];
+  const newHand = [...me.hand];
+  const discardedCard = newHand.splice(selectedCardIdx, 1)[0];
+  newHand.push(drawn);
+  selectedCardIdx = null;
+  await sb.from('caes_players').update({ hand: newHand }).eq('id', me.id);
+  await saveGameState({ ...freshGs, deck, discard: [...discard, discardedCard], turnSwapUsed: true,
+    log: [...freshGs.log, `${me.name} échange une carte (pouvoir).`] });
+}
+
+async function alixConvertCard(me){
+  if(selectedCardIdx === null) return;
+  const newHand = [...me.hand];
+  newHand[selectedCardIdx] = newHand[selectedCardIdx] === 'tir' ? 'esquive' : 'tir';
+  selectedCardIdx = null;
+  await sb.from('caes_players').update({ hand: newHand, power_used: true }).eq('id', me.id);
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  await saveGameState({ ...gs, log: [...gs.log, `${me.name} transforme une carte (pouvoir).`] });
+}
+
+function renderActionBar(gs, me){
+  const el = document.getElementById('action-bar');
+  el.innerHTML = '';
+  const myTurn = gs.turnSeat === me.seat_index && gs.phase === 'action' && !gs.pendingShot;
+  const isKeep2 = gs.phase === 'keep2' && gs.turnSeat === me.seat_index;
+  if(isKeep2){
+    const btn = document.createElement('button');
+    btn.className = 'btn primary';
+    btn.disabled = keep2Selection.length !== 2;
+    btn.textContent = `Garder ces ${keep2Selection.length}/2 cartes`;
+    btn.onclick = () => confirmKeep2(me);
+    el.appendChild(btn);
+  } else if(myTurn){
+    const btn = document.createElement('button');
+    btn.className = 'btn primary';
+    btn.textContent = 'Terminer le tour';
+    btn.onclick = () => endTurn(gs, me);
+    el.appendChild(btn);
+  } else if(gs.phase === 'discard' && gs.turnSeat === me.seat_index){
+    const hint = document.createElement('div');
+    hint.className = 'hint';
+    hint.textContent = `Défausse tes cartes en trop (touche ta main jusqu'à ${me.life} cartes)`;
+    el.appendChild(hint);
+  }
+}
+
+async function doDraw(gs, me){
+  let { deck, discard } = gs;
+  const drawCount = me.character === 'osmalin' ? 4 : 2;
+  if(deck.length < drawCount){
+    deck = shuffle([...deck, ...discard]);
+    discard = [];
+  }
+  const drawn = deck.splice(0, drawCount);
+  const newHand = [...me.hand, ...drawn];
+  await sb.from('caes_players').update({ hand: newHand }).eq('id', me.id);
+  const logMsg = me.character === 'osmalin'
+    ? `${me.name} pioche 4 cartes (pouvoir) — garde-en 2 avant de continuer.`
+    : `${me.name} pioche 2 cartes.`;
+  const newGs = { ...gs, deck, discard, phase: me.character === 'osmalin' ? 'keep2' : 'action',
+    log: [...gs.log, logMsg] };
+  await saveGameState(newGs);
+}
+
+async function confirmKeep2(me){
+  if(keep2Selection.length !== 2) return;
+  const kept = keep2Selection.map(i => me.hand[i]);
+  const discarded = me.hand.filter((_, i) => !keep2Selection.includes(i));
+  keep2Selection = [];
+  await sb.from('caes_players').update({ hand: kept }).eq('id', me.id);
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  await saveGameState({ ...gs, discard: [...gs.discard, ...discarded], phase: 'action',
+    log: [...gs.log, `${me.name} garde 2 cartes.`] });
+}
+
+async function fireShot(target){
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  const me = state.players.find(p => p.id === state.playerId);
+  if(gs.pendingShot) return; // déjà un tir en attente
+  const outOfRange = distanceBetween(me.seat_index, target.seat_index, state.players) > WEAPON_RANGE[me.weapon || 'pistolet_laser'];
+  const usingPower = outOfRange && powerRangeMode;
+  const newHand = [...me.hand];
+  newHand.splice(selectedCardIdx, 1);
+  selectedCardIdx = null;
+  powerRangeMode = false;
+  const playerUpdate = { hand: newHand };
+  if(usingPower) playerUpdate.power_used = true;
+  await sb.from('caes_players').update(playerUpdate).eq('id', me.id);
+  const logMsg = usingPower
+    ? `${me.name} tire sur ${target.name} à travers l'espace (pouvoir) !`
+    : `${me.name} tire sur ${target.name} !`;
+  const newGs = { ...gs, pendingShot: { fromSeat: me.seat_index, toSeat: target.seat_index },
+    log: [...gs.log, logMsg] };
+  await saveGameState(newGs);
+}
+
+function checkVictory(players){
+  const amiral = players.find(p => p.role === 'amiral');
+  if(amiral && !amiral.is_alive) return { winner: 'pirates' };
+  const alive = players.filter(p => p.is_alive);
+  if(alive.length === 1) return { winner: alive[0].role === 'amiral' ? 'amiral' : alive[0].role };
+  return null;
+}
+
+async function endTurn(gs, me){
+  selectedCardIdx = null;
+  powerRangeMode = false;
+  if((me.hand || []).length > me.life){
+    const trimmed = me.hand.slice(0, me.life);
+    const discarded = me.hand.slice(me.life);
+    await sb.from('caes_players').update({ hand: trimmed }).eq('id', me.id);
+    const room = await fetchRoom();
+    const gs2 = room.game_state;
+    await saveGameState({ ...gs2, discard: [...gs2.discard, ...discarded],
+      log: [...gs2.log, `${me.name} défausse ${discarded.length} carte(s).`] });
+  }
+  const order = getAliveOrderedSeats(state.players);
+  const curIdx = order.indexOf(me.seat_index);
+  const nextSeat = order[(curIdx + 1) % order.length];
+  const room = await fetchRoom();
+  const gs3 = room.game_state;
+  await saveGameState({ ...gs3, turnSeat: nextSeat, phase: 'draw', turnSwapUsed: false,
+    log: [...gs3.log, `Fin de tour de ${me.name}.`] });
+}
+
+function renderWinner(gs){
+  showScreen('screen-game');
+  const orbitEl = document.getElementById('orbit-3');
+  const banner = document.getElementById('turn-banner');
+  const pending = document.getElementById('pending-box');
+  const log = document.getElementById('log-feed');
+  const hand = document.getElementById('hand-area');
+  const actionBar = document.getElementById('action-bar');
+  const powerPanel = document.getElementById('power-panel');
+  pending.style.display = 'none'; hand.innerHTML = ''; actionBar.innerHTML = ''; banner.textContent = '';
+  powerPanel.innerHTML = '';
+  renderOrbitGame(gs);
+  const labels = { amiral: { icon:'👑', text:"L'AMIRAL A GAGNÉ" },
+    pirates: { icon:'☠️', text:'LES PIRATES ONT GAGNÉ' },
+    mercenaire: { icon:'🌀', text:'LE MERCENAIRE A GAGNÉ' } };
+  const info = labels[gs.winner] || { icon:'🏆', text: 'Partie terminée' };
+  log.innerHTML = `<div class="winner-banner"><div class="w-icon">${info.icon}</div>
+    <div class="w-title">${info.text}</div></div>`;
+}
+
+function shuffle(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+/* ---------- Realtime ---------- */
+function subscribeRealtime(){
+  if(state.channel) return;
+  state.channel = sb.channel('room-' + state.roomId)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'caes_players',
+        filter: `room_id=eq.${state.roomId}` }, async () => {
+      await refreshPlayers();
+      const me = state.players.find(p => p.id === state.playerId);
+      if(!me) return;
+      if(document.getElementById('screen-game').classList.contains('active')){
+        renderGame();
+      } else if(me.role){
+        showRoleScreen(me);
+      } else {
+        renderOrbit('orbit', state.players, false);
+        updateLobbyStatus();
+      }
+    })
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'caes_rooms',
+        filter: `id=eq.${state.roomId}` }, async (payload) => {
+      if(payload.new.status === 'playing'){
+        await refreshPlayers();
+        const me = state.players.find(p => p.id === state.playerId);
+        if(!me) return;
+        const onRoleOrGame = document.getElementById('screen-role').classList.contains('active') ||
+          document.getElementById('screen-game').classList.contains('active');
+        if(document.getElementById('screen-game').classList.contains('active')){
+          renderGame();
+        } else if(!onRoleOrGame && me.role){
+          showRoleScreen(me);
+        }
+      }
+    })
+    .subscribe();
+}
+
+function showRoleScreen(me){
+  const info = ROLE_INFO[me.role];
+  const card = document.getElementById('role-card');
+  card.className = 'role-card ' + info.cls;
+  document.getElementById('role-icon').textContent = info.icon;
+  document.getElementById('role-name').textContent = info.name;
+  document.getElementById('role-desc').textContent = info.desc;
+
+  const ch = getChar(me.character);
+  const charEl = document.getElementById('char-reveal');
+  if(ch){
+    charEl.innerHTML = `<div class="cr-name">${ch.icon} ${ch.name}</div><div class="cr-power">${ch.power}</div>`;
+  } else {
+    charEl.innerHTML = '';
+  }
+
+  renderOrbit('orbit-2', state.players, true);
+  showScreen('screen-role');
+}
+</script>
+</body>
+</html>
