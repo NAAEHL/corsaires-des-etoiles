@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Starfall Mutiny</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --void:#1B0F2E;
+    --panel:#2C1B47;
+    --panel-edge:#4A3268;
+    --ion:#29E7CD;
+    --plasma:#FF4FA3;
+    --amber:#FFC857;
+    --text:#FFF6E9;
+    --text-dim:#B8A6D9;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--void);color:var(--text);
+    font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;}
+  body{
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,.6) 0, transparent 40%),
+      radial-gradient(1px 1px at 65% 15%, rgba(255,255,255,.4) 0, transparent 40%),
+      radial-gradient(1.5px 1.5px at 80% 60%, rgba(255,255,255,.45) 0, transparent 40%),
+      radial-gradient(1px 1px at 40% 80%, rgba(255,255,255,.35) 0, transparent 40%),
+      radial-gradient(1px 1px at 90% 85%, rgba(255,255,255,.45) 0, transparent 40%),
+      radial-gradient(ellipse 70% 45% at 15% 0%, rgba(255,79,163,.20) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 100% 15%, rgba(255,200,87,.16) 0%, transparent 55%),
+      radial-gradient(ellipse 60% 50% at 50% 100%, rgba(41,231,205,.14) 0%, transparent 60%);
+  }
+  .app{max-width:520px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;
+    padding:24px 20px 40px;}
+
+  h1.brand{font-family:'Fraunces',serif;font-weight:900;font-size:28px;letter-spacing:.5px;
+    text-align:center;margin:8px 0 4px;
+    background:linear-gradient(120deg,var(--ion),var(--amber) 55%,var(--plasma));
+    -webkit-background-clip:text;background-clip:text;color:transparent;}
+  .subtitle{text-align:center;color:var(--text-dim);font-size:13px;letter-spacing:2px;
+    text-transform:uppercase;margin-bottom:18px;font-family:'JetBrains Mono',monospace;}
+
+  .lore-box{background:var(--panel);border:1px solid var(--panel-edge);border-radius:14px;
+    padding:16px 18px;margin-bottom:24px;font-family:'Fraunces',serif;font-size:14px;
+    line-height:1.6;color:var(--text-dim);font-style:italic;
+    border-left:3px solid var(--amber);}
+
+  .screen{display:none;flex-direction:column;gap:16px;flex:1;}
+  .screen.active{display:flex;}
+
+  .btn{font-family:'Inter',sans-serif;font-weight:700;font-size:16px;
+    padding:16px;border-radius:10px;border:1px solid var(--panel-edge);
+    background:var(--panel);color:var(--text);cursor:pointer;transition:.15s;text-align:center;}
+  .btn:active{transform:scale(.98);}
+  .btn.primary{background:linear-gradient(120deg,var(--ion),#2FBFA0);color:#06120E;border:none;}
+  .btn.ghost{background:transparent;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+
+  input[type=text]{font-family:'JetBrains Mono',monospace;font-size:18px;letter-spacing:2px;
+    padding:14px;border-radius:10px;border:1px solid var(--panel-edge);background:var(--panel);
+    color:var(--text);width:100%;text-transform:uppercase;text-align:center;}
+  input[type=text]::placeholder{color:var(--text-dim);letter-spacing:1px;text-transform:none;}
+  label{font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.5px;
+    font-family:'JetBrains Mono',monospace;margin-bottom:-6px;}
+
+  .error{color:var(--plasma);font-size:13px;font-family:'JetBrains Mono',monospace;text-align:center;
+    min-height:16px;}
+
+  .divider{display:flex;align-items:center;gap:12px;color:var(--text-dim);font-size:12px;
+    font-family:'JetBrains Mono',monospace;margin:4px 0;}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--panel-edge);}
+
+  /* --- Formation en cercle --- */
+  .orbit-wrap{position:relative;width:100%;aspect-ratio:1;max-width:380px;margin:12px auto;}
+  .orbit-ring{position:absolute;inset:8%;border-radius:50%;border:1px dashed var(--panel-edge);}
+  .orbit-ring::before{content:'';position:absolute;inset:18%;border-radius:50%;
+    border:1px solid rgba(41,231,205,.15);}
+  .orbit-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;font-family:'JetBrains Mono',monospace;color:var(--text-dim);font-size:11px;
+    text-align:center;letter-spacing:1px;}
+  .orbit-center b{color:var(--ion);font-size:22px;font-family:'Fraunces',serif;display:block;}
+
+  .seat{position:absolute;width:78px;height:78px;margin-left:-39px;margin-top:-39px;
+    border-radius:50%;background:var(--panel);border:2px solid var(--panel-edge);
+    display:flex;align-items:center;justify-content:center;flex-direction:column;
+    transition:.3s;}
+  .seat.filled{border-color:var(--ion);box-shadow:0 0 18px rgba(41,231,205,.25);}
+  .seat.me{border-color:var(--amber);box-shadow:0 0 18px rgba(255,200,87,.3);}
+  .seat.dead{border-color:var(--plasma);opacity:.5;}
+  .seat .seat-name{font-size:11px;font-weight:700;max-width:64px;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;}
+  .seat .seat-role{font-size:9px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;
+    margin-top:2px;text-transform:uppercase;}
+  .seat .seat-empty{color:var(--text-dim);font-size:22px;}
+
+  .dist-label{position:absolute;font-family:'JetBrains Mono',monospace;font-size:10px;
+    color:var(--text-dim);background:var(--void);padding:1px 5px;border-radius:6px;}
+
+  .code-display{text-align:center;font-family:'JetBrains Mono',monospace;font-size:32px;
+    font-weight:600;letter-spacing:8px;color:var(--ion);margin:4px 0;}
+  .hint{text-align:center;color:var(--text-dim);font-size:13px;}
+
+  .role-card{background:var(--panel);border:1px solid var(--panel-edge);border-radius:14px;
+    padding:28px 20px;text-align:center;margin-top:8px;}
+  .role-card .role-icon{font-size:44px;margin-bottom:8px;}
+  .role-card .role-name{font-family:'Fraunces',serif;font-size:20px;font-weight:800;
+    letter-spacing:1px;margin-bottom:8px;}
+  .role-card .role-desc{color:var(--text-dim);font-size:14px;line-height:1.5;}
+  .role-amiral .role-name{color:var(--amber);}
+  .role-pirate .role-name{color:var(--plasma);}
+  .role-mercenaire .role-name{color:#B98CFF;}
+
+  .status-bar{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim);
+    text-align:center;letter-spacing:1px;}
+  .status-bar .dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+    background:var(--ion);margin-right:6px;box-shadow:0 0 6px var(--ion);}
+
+  /* --- Écran de jeu --- */
+  .seat .life-row{display:flex;gap:2px;margin-top:2px;}
+  .seat .life-dot{width:6px;height:6px;border-radius:50%;background:var(--plasma);}
+  .seat .life-dot.on{background:var(--ion);box-shadow:0 0 4px var(--ion);}
+  .seat.turn{border-color:var(--amber);box-shadow:0 0 0 3px rgba(255,200,87,.25),0 0 18px rgba(255,200,87,.35);}
+  .seat.target-ok{cursor:pointer;border-color:var(--plasma);box-shadow:0 0 14px rgba(255,79,163,.4);}
+
+  .turn-banner{text-align:center;font-family:'JetBrains Mono',monospace;font-size:13px;
+    color:var(--text-dim);letter-spacing:1px;min-height:18px;}
+  .turn-banner.me{color:var(--amber);font-weight:600;}
+
+  .pending-box{background:var(--panel);border:1px solid var(--plasma);border-radius:12px;
+    padding:16px;text-align:center;}
+  .pending-box .pending-text{margin-bottom:12px;font-size:14px;}
+  .pending-box .pending-actions{display:flex;gap:10px;justify-content:center;}
+  .pending-box .btn{padding:10px 16px;font-size:14px;flex:1;}
+
+  .log-feed{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text-dim);
+    background:var(--panel);border:1px solid var(--panel-edge);border-radius:10px;
+    padding:10px 12px;max-height:88px;overflow-y:auto;display:flex;flex-direction:column-reverse;
+    gap:3px;}
+
+  .hand-area{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+  .card{background:linear-gradient(160deg, var(--panel), var(--void));border:2px solid var(--panel-edge);
+    border-radius:12px;cursor:pointer;transition:.15s;display:flex;flex-direction:column;
+    width:92px;min-height:130px;overflow:hidden;}
+  .card .card-icon-zone{flex:1;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(160deg, rgba(255,79,163,.16), rgba(255,200,87,.12) 55%, rgba(41,231,205,.14));
+    font-size:28px;}
+  .card .card-info{padding:6px 7px 8px;}
+  .card .card-name{font-weight:700;font-size:11px;line-height:1.2;margin-bottom:3px;}
+  .card .card-effect{font-size:9px;color:var(--text-dim);line-height:1.3;font-family:'JetBrains Mono',monospace;}
+  .card.selected{border-color:var(--ion);box-shadow:0 0 14px rgba(41,231,205,.35);}
+  .card:active{transform:scale(.96);}
+  .card.disabled{opacity:.4;cursor:not-allowed;}
+
+  .action-bar{display:flex;gap:10px;}
+
+  .my-char-card{display:flex;gap:10px;background:var(--panel);border:1px solid var(--panel-edge);
+    border-radius:14px;padding:8px;align-items:center;}
+  .my-char-card .mc-portrait{width:52px;height:52px;border-radius:10px;flex-shrink:0;
+    background:linear-gradient(160deg, rgba(255,79,163,.22), rgba(255,200,87,.16) 55%, rgba(41,231,205,.18));
+    background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;
+    font-size:24px;}
+  .my-char-card .mc-name{font-family:'Fraunces',serif;font-weight:700;font-size:13px;margin-bottom:2px;}
+  .my-char-card .mc-power{font-size:10.5px;color:var(--ion);font-family:'JetBrains Mono',monospace;line-height:1.3;}
+  .action-bar .btn{flex:1;padding:14px;font-size:14px;}
+
+  .winner-banner{text-align:center;padding:20px;}
+  .winner-banner .w-icon{font-size:52px;}
+  .winner-banner .w-title{font-family:'Fraunces',serif;font-size:22px;font-weight:800;
+    margin:10px 0;color:var(--amber);}
+
+  /* --- Sélection de personnage (format portrait TCG) --- */
+  .char-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .char-card{background:var(--panel);border:2px solid var(--panel-edge);border-radius:16px;
+    cursor:pointer;transition:.15s;overflow:hidden;display:flex;flex-direction:column;
+    aspect-ratio:5/7.2;}
+  .char-card .cc-portrait{flex:1;position:relative;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(160deg, rgba(255,79,163,.22), rgba(255,200,87,.16) 55%, rgba(41,231,205,.18));
+    background-size:cover;background-position:center;}
+  .char-card .cc-portrait .cc-icon{font-size:42px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.25));}
+  .char-card .cc-info{padding:8px 9px 10px;background:var(--panel);}
+  .char-card .cc-name{font-family:'Fraunces',serif;font-weight:700;font-size:13px;margin-bottom:3px;
+    line-height:1.15;}
+  .char-card .cc-power{font-size:9.5px;color:var(--ion);font-family:'JetBrains Mono',monospace;
+    line-height:1.35;}
+  .char-card.taken{opacity:.35;cursor:not-allowed;filter:grayscale(.7);}
+  .char-card.mine{border-color:var(--ion);box-shadow:0 0 16px rgba(41,231,205,.35);}
+  .char-card:active{transform:scale(.97);}
+
+  .char-reveal{background:var(--panel);border:1px solid var(--panel-edge);border-radius:12px;
+    padding:14px;margin-top:-4px;}
+  .char-reveal .cr-name{font-weight:700;font-size:14px;margin-bottom:4px;}
+  .char-reveal .cr-power{font-size:12px;color:var(--ion);font-family:'JetBrains Mono',monospace;}
+
+  .power-badge{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ion);
+    background:var(--panel);border:1px solid var(--panel-edge);border-radius:8px;
+    padding:6px 10px;text-align:center;}
+  .power-btn{background:linear-gradient(120deg,rgba(41,231,205,.2),rgba(41,231,205,.08));
+    border:1px solid var(--ion);color:var(--ion);}
+
+  .lang-toggle{position:fixed;top:14px;right:14px;z-index:50;background:var(--panel);
+    border:1px solid var(--panel-edge);color:var(--text-dim);font-family:'JetBrains Mono',monospace;
+    font-size:12px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;letter-spacing:1px;}
+  .lang-toggle:active{transform:scale(.95);}
+</style>
+</head>
+<body>
+<div class="app">
+  <button class="lang-toggle" id="btn-lang">EN</button>
+  <h1 class="brand">STARFALL MUTINY</h1>
+  <div class="subtitle" data-i18n="subtitle">— a duel among the stars —</div>
+  <div class="lore-box" data-i18n="lore">
+    L'Amiral a détourné toute une flotte pour une cause qu'il n'a jamais expliquée. Son équipage
+    le suit encore… sauf deux d'entre eux, payés en secret pour le faire tomber avant l'arrivée.
+    Un dernier mercenaire n'a rejoint le vaisseau que pour le butin — peu importe qui gagne,
+    tant qu'il repart seul avec.
+  </div>
+
+  <!-- ÉCRAN 1 : accueil -->
+  <div class="screen active" id="screen-home">
+    <button class="btn primary" id="btn-create" data-i18n="btnCreate">Créer une partie</button>
+    <div class="divider" data-i18n="or">ou</div>
+    <button class="btn ghost" id="btn-join-open" data-i18n="btnJoinOpen">Rejoindre avec un code</button>
+    <div id="join-panel" style="display:none;flex-direction:column;gap:12px;">
+      <label data-i18n="labelGameCode">Code de la partie</label>
+      <input type="text" id="input-code" maxlength="4" placeholder="XXXX">
+      <label data-i18n="labelYourName">Ton nom</label>
+      <input type="text" id="input-name-join" maxlength="16" placeholder="Pseudo" data-i18n-placeholder="placeholderName">
+      <button class="btn primary" id="btn-join-confirm" data-i18n="btnJoin">Rejoindre</button>
+    </div>
+    <div class="error" id="home-error"></div>
+  </div>
+
+  <!-- ÉCRAN 1b : création (nom) -->
+  <div class="screen" id="screen-create-name">
+    <label data-i18n="labelYourName">Ton nom</label>
+    <input type="text" id="input-name-create" maxlength="16" placeholder="Pseudo" data-i18n-placeholder="placeholderName">
+    <button class="btn primary" id="btn-create-confirm" data-i18n="btnLaunchLobby">Lancer le lobby</button>
+    <button class="btn ghost" id="btn-create-back" data-i18n="btnBack">Retour</button>
+    <div class="error" id="create-error"></div>
+  </div>
+
+  <!-- ÉCRAN 1c : sélection de personnage -->
+  <div class="screen" id="screen-character">
+    <div class="hint" style="margin-bottom:4px;" data-i18n="chooseCharacter">Choisis ton personnage</div>
+    <div class="char-grid" id="char-grid"></div>
+  </div>
+
+  <!-- ÉCRAN 2 : lobby / cercle -->
+  <div class="screen" id="screen-lobby">
+    <div class="code-display" id="lobby-code">----</div>
+    <div class="hint" data-i18n="giveCode">Donne ce code aux 3 autres joueurs</div>
+    <div class="orbit-wrap" id="orbit"></div>
+    <div class="status-bar" id="lobby-status"><span class="dot"></span></div>
+    <button class="btn primary" id="btn-start" style="display:none;" data-i18n="btnStartGame">Lancer la partie</button>
+  </div>
+
+  <!-- ÉCRAN 3 : révélation du rôle -->
+  <div class="screen" id="screen-role">
+    <div class="role-card" id="role-card">
+      <div class="role-icon" id="role-icon">🛰️</div>
+      <div class="role-name" id="role-name">—</div>
+      <div class="role-desc" id="role-desc">—</div>
+    </div>
+    <div class="char-reveal" id="char-reveal"></div>
+    <div class="orbit-wrap" id="orbit-2"></div>
+    <button class="btn primary" id="btn-to-game" data-i18n="btnGo">C'est parti</button>
+  </div>
+
+  <!-- ÉCRAN 4 : partie en cours -->
+  <div class="screen" id="screen-game">
+    <div class="orbit-wrap" id="orbit-3"></div>
+    <div class="my-char-card" id="my-char-card"></div>
+    <div class="turn-banner" id="turn-banner">—</div>
+    <div class="pending-box" id="pending-box" style="display:none;"></div>
+    <div class="pending-box" id="duel-box" style="display:none;"></div>
+    <div id="power-panel"></div>
+    <div class="log-feed" id="log-feed"></div>
+    <div class="hand-area" id="hand-area"></div>
+    <div class="action-bar" id="action-bar"></div>
+  </div>
+</div>
+
+<script>
+/* ---------- Config Supabase ---------- */
+// ⚠️ Remplace par les identifiants de TON projet Supabase (mêmes que party-games / bioleach-lab
+// si tu veux réutiliser le même projet, ou un nouveau projet dédié).
+const SUPABASE_URL = 'https://cznsjfafojqtggcfqdet.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6bnNqZmFmb2pxdGdnY2ZxZGV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MTY0MTIsImV4cCI6MjA5Njk5MjQxMn0.2GTqKmSaMi7ZzDmHnsNo6PyjHirwRnKFCxTXmAMECUk';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ---------- État local ---------- */
+let lang = localStorage.getItem('sfm_lang') || 'fr';
+function setLang(l){ lang = l; try{ localStorage.setItem('sfm_lang', l); }catch(e){} }
+function tr(fr, en){ return lang === 'en' ? en : fr; }
+
+const STATIC_UI = {
+  subtitle: { fr: '— duel spatial à quatre —', en: '— a duel among the stars —' },
+  lore: { fr: `L'Amiral a détourné toute une flotte pour une cause qu'il n'a jamais expliquée. Son équipage
+    le suit encore… sauf deux d'entre eux, payés en secret pour le faire tomber avant l'arrivée.
+    Un dernier mercenaire n'a rejoint le vaisseau que pour le butin — peu importe qui gagne,
+    tant qu'il repart seul avec.`,
+    en: `The Admiral hijacked an entire fleet for a cause they've never explained. Most of the crew
+    still follows them… except two, secretly paid to bring them down before arrival.
+    One last mercenary only joined for the loot — whoever wins, as long as they leave alone with it.` },
+  btnCreate: { fr: 'Créer une partie', en: 'Create a game' },
+  or: { fr: 'ou', en: 'or' },
+  btnJoinOpen: { fr: 'Rejoindre avec un code', en: 'Join with a code' },
+  labelGameCode: { fr: 'Code de la partie', en: 'Game code' },
+  labelYourName: { fr: 'Ton nom', en: 'Your name' },
+  placeholderName: { fr: 'Pseudo', en: 'Nickname' },
+  btnJoin: { fr: 'Rejoindre', en: 'Join' },
+  btnLaunchLobby: { fr: 'Lancer le lobby', en: 'Open the lobby' },
+  btnBack: { fr: 'Retour', en: 'Back' },
+  chooseCharacter: { fr: 'Choisis ton personnage', en: 'Choose your character' },
+  giveCode: { fr: 'Donne ce code aux 3 autres joueurs', en: 'Give this code to the 3 other players' },
+  btnStartGame: { fr: 'Lancer la partie', en: 'Start the game' },
+  btnGo: { fr: "C'est parti", en: "Let's go" },
+};
+
+function applyStaticTranslations(){
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if(STATIC_UI[key]) el.textContent = L(STATIC_UI[key]);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if(STATIC_UI[key]) el.placeholder = L(STATIC_UI[key]);
+  });
+  const langBtn = document.getElementById('btn-lang');
+  if(langBtn) langBtn.textContent = lang === 'en' ? 'FR' : 'EN';
+}
+
+document.addEventListener('DOMContentLoaded', applyStaticTranslations);
+if(document.readyState !== 'loading') applyStaticTranslations();
+
+let state = {
+  roomId: null,
+  roomCode: null,
+  playerId: null,
+  seatIndex: null,
+  isHost: false,
+  players: [],   // [{id, seat_index, name, role, is_host, is_alive}]
+  channel: null,
+};
+
+function L(obj){ return (obj && obj[lang]) || (obj && obj.fr) || ''; }
+
+const ROLE_INFO = {
+  amiral: {
+    icon: '👑', cls: 'role-amiral',
+    name: { fr: 'AMIRAL', en: 'ADMIRAL' }, short: { fr: 'Amiral', en: 'Admiral' },
+    desc: { fr: "Ton identité est connue de tous. Les Pirates Rebelles veulent ta mort. Survis et élimine tes ennemis.",
+      en: "Your identity is known to everyone. The Rebel Pirates want you dead. Survive and eliminate your enemies." }
+  },
+  pirate: {
+    icon: '☠️', cls: 'role-pirate',
+    name: { fr: 'PIRATE REBELLE', en: 'REBEL PIRATE' }, short: { fr: 'Pirate', en: 'Pirate' },
+    desc: { fr: "Secret. Toi et l'autre Pirate devez abattre l'Amiral. Coordonnez-vous sans vous dévoiler.",
+      en: "Secret. You and the other Pirate must take down the Admiral. Coordinate without giving yourselves away." }
+  },
+  mercenaire: {
+    icon: '🌀', cls: 'role-mercenaire',
+    name: { fr: 'MERCENAIRE SOLITAIRE', en: 'LONE MERCENARY' }, short: { fr: 'Mercenaire', en: 'Mercenary' },
+    desc: { fr: "Secret. Tu ne gagnes que si tu es le dernier survivant. Personne n'est ton allié.",
+      en: "Secret. You only win if you're the last one standing. No one is your ally." }
+  }
+};
+
+const CHARACTERS = [
+  { id:'zovienne', name:{fr:'Claire Voyant', en:'Claire Voyant'}, img:'portraits/claire.jpg', icon:'🕵️‍♀️',
+    desc:{ fr:"Blonde platine, regard bleu vif, combinaison tactique claire, consulte une interface holographique turquoise qui affiche la prochaine carte.",
+      en:"Platinum blonde, sharp blue eyes, light tactical suit, checks a turquoise holographic display showing the next card." },
+    power:{ fr:"Voit la carte du dessus de la pioche en permanence, et peut l'enterrer au fond du deck une fois par partie.",
+      en:"Always sees the top card of the deck, and can bury it at the bottom once per game." }, powerType:'peek_and_bury' },
+  { id:'skai', name:{fr:'Skaï', en:'Skaï'}, img:'portraits/skai.jpg', icon:'✈️',
+    desc:{ fr:"Peau mate, cheveux noirs longs attachés, tenue de pilote colorée et bien éclairée, sourire franc.",
+      en:"Warm skin tone, long black hair tied back, bright and colorful pilot suit, easy smile." },
+    power:{ fr:"Ses tirs infligent 1 dégât de plus si la cible est déjà blessée.",
+      en:"Her shots deal 1 extra damage if the target is already wounded." }, powerType:'always_bonus_dmg_wounded' },
+  { id:'elia', name:{fr:'Elia Chève', en:'Elia Chève'}, img:'portraits/elia.jpg', icon:'🗡️',
+    desc:{ fr:"Silhouette élancée, chignon haut soigné, tenue de duelliste sous un grand soleil, visage lumineux et déterminé.",
+      en:"Slender frame, neat high bun, duelist outfit under a bright sun, radiant and determined face." },
+    power:{ fr:"Portée +1 en permanence, et une fois par partie ignore complètement la distance pour un tir.",
+      en:"Permanent +1 range, and once per game completely ignores distance for a shot." }, powerType:'once_ignore_range' },
+  { id:'krysalla', name:{fr:'Krysalla Ossa', en:'Krysalla Ossa'}, img:'portraits/krysalla.jpg', icon:'💎',
+    desc:{ fr:"Peau cristalline semi-translucide, pas de visage fixe — des motifs internes pulsent.",
+      en:"Semi-translucent crystalline skin, no fixed face — internal patterns pulse instead." },
+    power:{ fr:"Renvoie le premier tir qu'elle subit vers un joueur adjacent au hasard.",
+      en:"Reflects the first shot she takes toward a random adjacent player." }, powerType:'once_reflect_first_hit' },
+  { id:'kantu', name:{fr:'Kantu Vey', en:'Annie Time'}, img:'portraits/kantu.jpg', icon:'🔄',
+    desc:{ fr:"Chitine iridescente changeant de teinte, deux paires d'yeux facettés, mouvements précis.",
+      en:"Iridescent chitin that shifts hue, two pairs of faceted eyes, precise movements." },
+    power:{ fr:"Jusqu'à 2 fois par tour, défausse une carte pour en piocher une nouvelle.",
+      en:"Up to twice per turn, discards a card to draw a new one." }, powerType:'per_turn_swap_draw' },
+  { id:'talia', name:{fr:'Talia Vance', en:'Ada Vantage'}, img:'portraits/talia.jpg', icon:'🌑',
+    desc:{ fr:"Haute stature, tissus sombres superposés qui brouillent sa silhouette, mais visage visible et éclairé — traits calmes, regard perçant, présence intimidante sans jamais être cachée.",
+      en:"Tall build, layered dark fabrics that blur her silhouette, but her face stays visible and lit — calm features, piercing gaze, intimidating presence without ever being hidden." },
+    power:{ fr:"Peut garder 1 carte de plus en main que les autres, toute la partie.",
+      en:"Can hold 1 more card in hand than others, for the whole game." }, powerType:'extra_hand_size' },
+  { id:'alix', name:{fr:'Alix Aeverse', en:'Alix Aeverse'}, img:'portraits/alix.jpg', icon:'♾️',
+    desc:{ fr:"Silhouette fine et androgyne, peau à reflets changeants, traits doux et symétriques.",
+      en:"Slim, androgynous silhouette, shimmering shifting skin, soft symmetrical features." },
+    power:{ fr:"2 fois par partie, transforme une carte Tir! en Esquive! (ou l'inverse).",
+      en:"Twice per game, turns a Shoot! card into a Dodge! (or vice versa)." }, powerType:'once_swap_card_type' },
+  { id:'bastien', name:{fr:'Bastien Roc', en:'Bastien Roc'}, img:'portraits/bastien.jpg', icon:'🛡️',
+    desc:{ fr:"Carrure massive, armure improvisée en plaques de coque de vaisseau, cicatrices.",
+      en:"Massive build, makeshift armor welded from ship hull plates, scars." },
+    power:{ fr:"Son armure lui donne 1 vie de plus que les autres (5 au lieu de 4).",
+      en:"His armor gives him 1 more life than others (5 instead of 4)." }, powerType:'extra_max_life' },
+  { id:'milo', name:{fr:'Milo Chance', en:'Milo Chance'}, img:'portraits/milo.jpg', icon:'🍀',
+    desc:{ fr:"Sourire en coin, veste élimée couverte de badges, regard rusé de contrebandier.",
+      en:"Crooked smile, worn jacket covered in badges, the sly look of a smuggler." },
+    power:{ fr:"Pioche une carte à chaque fois qu'il subit des dégâts.",
+      en:"Draws a card every time he takes damage." }, powerType:'always_draw_on_damage' },
+  { id:'fyoom', name:{fr:'Fyoom', en:'Fyoom'}, img:'portraits/fyoom.jpg', icon:'💨',
+    desc:{ fr:"Entité gazeuse ultra-lumineuse (rose et orange fluo) dans une combinaison pressurisée transparente, forme changeante mais toujours bien visible.",
+      en:"Ultra-bright gaseous entity (neon pink and orange) in a transparent pressure suit, shifting shape but always clearly visible." },
+    power:{ fr:"Commence avec 1 carte de plus, et une fois par partie se disperse pour éviter un tir sans jouer de carte.",
+      en:"Starts with 1 extra card, and once per game disperses to dodge a shot without playing a card." }, powerType:'once_free_dodge' },
+  { id:'krebon', name:{fr:'Kambium', en:'Cambium'}, img:'portraits/kambium.jpg', icon:'🌿',
+    desc:{ fr:"Silhouette élancée d'elfe sylvestre, peau semblable à une écorce vivante, cristaux verts luminescents sur le front et le torse, grands yeux dorés, oreilles pointues feuillues.",
+      en:"Slender sylvan-elf silhouette, skin like living bark, glowing green crystals on forehead and chest, large golden eyes, pointed leaf-like ears." },
+    power:{ fr:"La première fois qu'il tombe à 1 vie, régénère automatiquement 1 vie.",
+      en:"The first time he drops to 1 life, automatically regenerates 1 life." }, powerType:'once_heal_at_1hp' },
+  { id:'osmalin', name:{fr:'Osmalin', en:'Owen Smart'}, img:'portraits/osmalin.jpg', icon:'🧠',
+    desc:{ fr:"Silhouette élancée à quatre bras fins, peau minérale gris-bleu texturée, manipule des écrans tactiques orange vif, voix grave et posée.",
+      en:"Slender four-armed silhouette, textured blue-grey mineral skin, works bright orange tactical screens, deep steady voice." },
+    power:{ fr:"Au début de son tour, pioche 4 cartes et n'en garde que 2.",
+      en:"At the start of his turn, draws 4 cards and keeps only 2." }, powerType:'draw4_keep2' },
+];
+function getMaxLife(character, role){ return (character === 'bastien' ? 5 : 4) + (role === 'amiral' ? 1 : 0); }
+function getHandLimit(character, life){ return life + (character === 'talia' ? 1 : 0); }
+function getStartingHandSize(character){ return 4 + (character === 'talia' || character === 'fyoom' ? 1 : 0); }
+function getEffectiveRange(player, rangeModifier){
+  const weaponDef = WEAPONS[player.weapon || 'pistolet_laser'];
+  const base = weaponDef.range + (player.character === 'elia' ? 1 : 0) + (rangeModifier || 0);
+  return Math.max(1, base);
+}
+function getPerceivedDistance(shooter, target, players){
+  let d = distanceBetween(shooter.seat_index, target.seat_index, players);
+  if(target.equipment && target.equipment.includes('bouclier')) d += 1;
+  if(shooter.equipment && shooter.equipment.includes('propulseur')) d -= 1;
+  return Math.max(1, d);
+}
+
+function getChar(id){ return CHARACTERS.find(c => c.id === id); }
+
+/* ---------- Navigation ---------- */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* ---------- Écran accueil ---------- */
+document.getElementById('btn-lang').onclick = () => {
+  setLang(lang === 'en' ? 'fr' : 'en');
+  applyStaticTranslations();
+  if(document.getElementById('screen-character').classList.contains('active')) renderCharGrid();
+  else if(document.getElementById('screen-lobby').classList.contains('active')){ renderOrbit('orbit', state.players, false); updateLobbyStatus(); }
+  else if(document.getElementById('screen-game').classList.contains('active')) renderGame();
+};
+
+document.getElementById('btn-create').onclick = () => showScreen('screen-create-name');
+document.getElementById('btn-create-back').onclick = () => showScreen('screen-home');
+document.getElementById('btn-join-open').onclick = () => {
+  document.getElementById('join-panel').style.display = 'flex';
+};
+
+function randomCode(){
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let out = '';
+  for(let i=0;i<4;i++) out += chars[Math.floor(Math.random()*chars.length)];
+  return out;
+}
+
+/* ---------- Créer une partie ---------- */
+document.getElementById('btn-create-confirm').onclick = async () => {
+  const name = document.getElementById('input-name-create').value.trim();
+  const errEl = document.getElementById('create-error');
+  errEl.textContent = '';
+  if(!name){ errEl.textContent = tr('Entre un nom.','Enter a name.'); return; }
+
+  const code = randomCode();
+  const { data: room, error: roomErr } = await sb.from('caes_rooms')
+    .insert({ code, status: 'lobby' }).select().single();
+  if(roomErr){ errEl.textContent = tr('Erreur de création. Réessaie.','Creation error. Try again.'); console.error(roomErr); return; }
+
+  const { data: player, error: playerErr } = await sb.from('caes_players')
+    .insert({ room_id: room.id, seat_index: 0, name, is_host: true }).select().single();
+  if(playerErr){ errEl.textContent = tr('Erreur de création. Réessaie.','Creation error. Try again.'); console.error(playerErr); return; }
+
+  state.roomId = room.id;
+  state.roomCode = room.code;
+  state.playerId = player.id;
+  state.seatIndex = 0;
+  state.isHost = true;
+
+  enterLobby();
+};
+
+/* ---------- Rejoindre une partie ---------- */
+document.getElementById('btn-join-confirm').onclick = async () => {
+  const code = document.getElementById('input-code').value.trim().toUpperCase();
+  const name = document.getElementById('input-name-join').value.trim();
+  const errEl = document.getElementById('home-error');
+  errEl.textContent = '';
+  if(!code || !name){ errEl.textContent = tr('Entre un code et un nom.','Enter a code and a name.'); return; }
+
+  const { data: room, error: roomErr } = await sb.from('caes_rooms')
+    .select('*').eq('code', code).maybeSingle();
+  if(roomErr || !room){ errEl.textContent = tr('Code introuvable.','Code not found.'); return; }
+  if(room.status !== 'lobby'){ errEl.textContent = tr('Cette partie a déjà commencé.','This game has already started.'); return; }
+
+  const { data: existingPlayers, error: playersErr } = await sb.from('caes_players')
+    .select('*').eq('room_id', room.id).order('seat_index');
+  if(playersErr){ errEl.textContent = tr('Erreur. Réessaie.','Error. Try again.'); return; }
+  if(existingPlayers.length >= 4){ errEl.textContent = tr('Partie complète (4/4).','Game full (4/4).'); return; }
+
+  const takenSeats = existingPlayers.map(p => p.seat_index);
+  let seat = 0;
+  while(takenSeats.includes(seat)) seat++;
+
+  const { data: player, error: insErr } = await sb.from('caes_players')
+    .insert({ room_id: room.id, seat_index: seat, name, is_host: false }).select().single();
+  if(insErr){ errEl.textContent = tr('Erreur en rejoignant. Réessaie.','Error joining. Try again.'); console.error(insErr); return; }
+
+  state.roomId = room.id;
+  state.roomCode = room.code;
+  state.playerId = player.id;
+  state.seatIndex = seat;
+  state.isHost = false;
+
+  enterLobby();
+};
+
+/* ---------- Lobby ---------- */
+async function enterLobby(){
+  document.getElementById('lobby-code').textContent = state.roomCode;
+  subscribeRealtime();
+  await refreshPlayers();
+  showScreen('screen-character');
+  renderCharGrid();
+}
+
+/* ---------- Sélection de personnage ---------- */
+function renderCharGrid(){
+  const grid = document.getElementById('char-grid');
+  grid.innerHTML = '';
+  const taken = new Set(state.players.filter(p => p.character && p.id !== state.playerId).map(p => p.character));
+  const me = state.players.find(p => p.id === state.playerId);
+  CHARACTERS.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'char-card' + (taken.has(c.id) ? ' taken' : '') + (me && me.character === c.id ? ' mine' : '');
+    const portraitStyle = c.img ? `style="background-image:url('${c.img}')"` : '';
+    el.innerHTML = `<div class="cc-portrait" ${portraitStyle}>${c.img ? '' : `<span class="cc-icon">${c.icon}</span>`}</div>
+      <div class="cc-info"><div class="cc-name">${L(c.name)}</div><div class="cc-power">${L(c.power)}</div></div>`;
+    if(!taken.has(c.id)){
+      el.onclick = () => chooseCharacter(c.id);
+    }
+    grid.appendChild(el);
+  });
+}
+
+async function chooseCharacter(charId){
+  await sb.from('caes_players').update({ character: charId }).eq('id', state.playerId);
+  await refreshPlayers();
+  showScreen('screen-lobby');
+}
+
+async function refreshPlayers(){
+  const { data, error } = await sb.from('caes_players')
+    .select('*').eq('room_id', state.roomId).order('seat_index');
+  if(error){ console.error(error); return; }
+  state.players = data;
+  if(document.getElementById('screen-lobby').classList.contains('active')){
+    renderOrbit('orbit', state.players, false);
+    updateLobbyStatus();
+  } else if(document.getElementById('screen-character').classList.contains('active')){
+    renderCharGrid();
+  }
+}
+
+function updateLobbyStatus(){
+  const n = state.players.length;
+  const allChosen = n === 4 && state.players.every(p => p.character);
+  const statusEl = document.getElementById('lobby-status');
+  const startBtn = document.getElementById('btn-start');
+  if(n < 4){
+    statusEl.innerHTML = `<span class="dot"></span>${n}/4 ${tr('joueurs connectés…','players connected…')}`;
+    startBtn.style.display = 'none';
+  } else if(!allChosen){
+    const waiting = state.players.filter(p => !p.character).map(p => p.name).join(', ');
+    statusEl.innerHTML = `<span class="dot"></span>${tr('En attente du choix de perso','Waiting on character choice')} : ${waiting}`;
+    startBtn.style.display = 'none';
+  } else {
+    statusEl.innerHTML = `<span class="dot" style="background:var(--amber);box-shadow:0 0 6px var(--amber);"></span>4/4 — ${tr('prêt à décoller','ready to launch')}`;
+    startBtn.style.display = state.isHost ? 'block' : 'none';
+    if(!state.isHost) statusEl.innerHTML += '<br>' + tr("En attente que l'hôte lance la partie…","Waiting for the host to start the game…");
+  }
+}
+
+/* ---------- Rendu du cercle (formation) ---------- */
+function renderOrbit(containerId, players, revealAll){
+  const wrap = document.getElementById(containerId);
+  wrap.innerHTML = '<div class="orbit-ring"></div><div class="orbit-center"><b>' +
+    players.length + '/4</b>ÉQUIPAGE</div>';
+  const radius = 42; // % du conteneur
+  const seats = [0,1,2,3];
+  seats.forEach(seatIdx => {
+    const angle = (Math.PI * 2 * seatIdx / 4) - Math.PI/2; // seat 0 en haut
+    const cx = 50 + radius * Math.cos(angle);
+    const cy = 50 + radius * Math.sin(angle);
+    const p = players.find(pl => pl.seat_index === seatIdx);
+    const seatEl = document.createElement('div');
+    seatEl.className = 'seat';
+    seatEl.style.left = cx + '%';
+    seatEl.style.top = cy + '%';
+    if(p){
+      seatEl.classList.add('filled');
+      if(p.id === state.playerId) seatEl.classList.add('me');
+      if(p.is_alive === false) seatEl.classList.add('dead');
+      let roleLabel = '';
+      if(revealAll){
+        if(p.role === 'amiral') roleLabel = L(ROLE_INFO.amiral.short);
+        else if(p.id === state.playerId && p.role) roleLabel = L(ROLE_INFO[p.role].short);
+        else if(p.role) roleLabel = '???';
+      }
+      const charIcon = p.character ? getChar(p.character).icon + ' ' : '';
+      seatEl.innerHTML = `<div class="seat-name">${charIcon}${escapeHtml(p.name)}</div>` +
+        (roleLabel ? `<div class="seat-role">${roleLabel}</div>` : '');
+    } else {
+      seatEl.innerHTML = '<div class="seat-empty">＋</div>';
+    }
+    wrap.appendChild(seatEl);
+  });
+  // distances entre sièges adjacents (portée = nb de pas dans le cercle)
+  seats.forEach(seatIdx => {
+    const nextIdx = (seatIdx + 1) % 4;
+    const a1 = (Math.PI * 2 * seatIdx / 4) - Math.PI/2;
+    const a2 = (Math.PI * 2 * nextIdx / 4) - Math.PI/2;
+    const mid = (a1 + a2) / 2 + (nextIdx === 0 ? Math.PI : 0);
+    const midAngle = ((a1 + a2) / 2);
+    const lx = 50 + (radius + 8) * Math.cos((a1+a2)/2);
+    const ly = 50 + (radius + 8) * Math.sin((a1+a2)/2);
+    const label = document.createElement('div');
+    label.className = 'dist-label';
+    label.style.left = lx + '%';
+    label.style.top = ly + '%';
+    label.style.transform = 'translate(-50%,-50%)';
+    label.textContent = '1';
+    wrap.appendChild(label);
+  });
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* ---------- Lancer la partie (assignation des rôles + init moteur) ---------- */
+document.getElementById('btn-start').onclick = async () => {
+  if(state.players.length !== 4) return;
+  const btn = document.getElementById('btn-start');
+  btn.disabled = true;
+  btn.textContent = tr('Lancement…','Starting…');
+  try {
+    const roles = shuffle(['amiral','pirate','pirate','mercenaire']);
+    const sorted = [...state.players].sort((a,b) => a.seat_index - b.seat_index);
+
+    let deck = buildDeck();
+    const updates = sorted.map((p, i) => {
+      const handSize = getStartingHandSize(p.character);
+      const hand = deck.splice(0, handSize);
+      return sb.from('caes_players').update({
+        role: roles[i], life: getMaxLife(p.character, roles[i]), hand, weapon: 'pistolet_laser', is_alive: true,
+        power_used: false, equipment: []
+      }).eq('id', p.id);
+    });
+    const results = await Promise.all(updates);
+    const failed = results.find(r => r.error);
+    if(failed){ throw failed.error; }
+
+    const admiralSeat = sorted[roles.indexOf('amiral')].seat_index;
+    const gameState = {
+      deck, discard: [], turnSeat: admiralSeat, phase: 'draw',
+      pendingShot: null, log: [tr('La partie commence.','The game begins.')], winner: null, turnSwapCount: 0,
+      skaiBonusUsedThisTurn: false, miloDrawUsedThisTurn: false, alixCharges: 2,
+      turnShotUsed: false, bomb: null, stasedSeat: null, pendingDuel: null
+    };
+    const { error: roomErr } = await sb.from('caes_rooms').update({ status: 'playing', game_state: gameState }).eq('id', state.roomId);
+    if(roomErr) throw roomErr;
+
+    // On ne compte plus uniquement sur le temps réel : l'hôte passe directement à l'écran de rôle.
+    await refreshPlayers();
+    const me = state.players.find(p => p.id === state.playerId);
+    if(me && me.role) showRoleScreen(me);
+  } catch(err) {
+    console.error('Erreur au lancement de la partie :', err);
+    alert(tr(
+      "Erreur au lancement de la partie : " + (err && err.message ? err.message : 'inconnue') + ". Vérifie que le script SQL a bien été exécuté en entier sur Supabase (colonnes life/hand/weapon/character/power_used/equipment), puis réessaie.",
+      "Error starting the game: " + (err && err.message ? err.message : 'unknown') + ". Make sure the full SQL script has been run on Supabase (life/hand/weapon/character/power_used/equipment columns), then try again."
+    ));
+    btn.disabled = false;
+    btn.textContent = tr('Lancer la partie','Start the game');
+  }
+};
+
+document.getElementById('btn-to-game').onclick = () => { showScreen('screen-game'); renderGame(); };
+
+/* ==================================================================
+   MOTEUR DE TOUR — noyau (distance, Tir!, Esquive!, victoire)
+   ================================================================== */
+const WEAPONS = {
+  pistolet_laser: { name:{fr:'Pistolet Laser', en:'Laser Pistol'}, range:1, unlimited:true, icon:'🔫' },
+  fusil_pulse: { name:{fr:'Fusil à Pulse', en:'Pulse Rifle'}, range:2, unlimited:false, icon:'⚡' },
+  canon_ions: { name:{fr:'Canon à Ions', en:'Ion Cannon'}, range:3, unlimited:false, icon:'🔵' },
+  fusil_rail: { name:{fr:'Fusil à Rail', en:'Rail Gun'}, range:4, unlimited:false, icon:'🛰️' },
+  harpon_gravitationnel: { name:{fr:'Lance-Harpon Gravitationnel', en:'Gravity Harpoon'}, range:5, unlimited:false, icon:'🪝' },
+};
+const WEAPON_CARD_TO_ID = { w_pulse:'fusil_pulse', w_ions:'canon_ions', w_rail:'fusil_rail', w_harpon:'harpon_gravitationnel' };
+const WEAPON_ID_TO_CARD = { fusil_pulse:'w_pulse', canon_ions:'w_ions', fusil_rail:'w_rail', harpon_gravitationnel:'w_harpon' };
+const EQUIPMENT_ICONS = { bouclier:'🛡️', propulseur:'🚀', coque:'🧱' };
+
+const SIGNALS = [
+  { id:'nebuleuse', icon:'🌌', name:{fr:'Nébuleuse', en:'Nebula'},
+    desc:{fr:"Toutes les portées +1 jusqu'à la fin du tour en cours.", en:"All ranges +1 until the end of the current turn."} },
+  { id:'asteroides', icon:'☄️', name:{fr:"Champ d'Astéroïdes", en:'Asteroid Field'},
+    desc:{fr:"Toutes les portées -1 jusqu'à la fin du tour en cours.", en:"All ranges -1 until the end of the current turn."} },
+  { id:'tempete', icon:'☀️', name:{fr:'Tempête Solaire', en:'Solar Storm'},
+    desc:{fr:'Tout le monde défausse 1 carte.', en:'Everyone discards 1 card.'} },
+  { id:'trounoir', icon:'🕳️', name:{fr:'Trou Noir', en:'Black Hole'},
+    desc:{fr:'Le(s) joueur(s) avec le plus de cartes en main en perd(ent) la moitié.', en:'The player(s) with the most cards in hand lose half of them.'} },
+  { id:'trouver', icon:'🌀', name:{fr:'Trou de Ver', en:'Wormhole'},
+    desc:{fr:'La formation est mélangée.', en:'The formation is shuffled.'} },
+  { id:'supernova', icon:'💥', name:{fr:'Supernova', en:'Supernova'},
+    desc:{fr:'1 dégât à tout le monde.', en:'1 damage to everyone.'} },
+  { id:'geante', icon:'🪐', name:{fr:'Géante Gazeuse', en:'Gas Giant'},
+    desc:{fr:'Tout le monde soigne 1 vie.', en:'Everyone heals 1 life.'} },
+  { id:'pulsar', icon:'⭐', name:{fr:'Pulsar', en:'Pulsar'},
+    desc:{fr:"Le rôle d'un joueur aléatoire est révélé à tous.", en:"A random player's role is revealed to everyone."} },
+];
+
+const CARD_INFO = {
+  tir: { icon: '🔫', label: {fr:'Tir!', en:'Shoot!'}, effect:{fr:'Inflige 1 dégât à portée.', en:'Deals 1 damage at range.'} },
+  esquive: { icon: '🌀', label: {fr:'Esquive!', en:'Dodge!'}, effect:{fr:'Annule un tir reçu.', en:'Cancels an incoming shot.'} },
+  w_pulse: { icon:'⚡', label:{fr:'Fusil à Pulse', en:'Pulse Rifle'}, effect:{fr:'Équipe : portée 2, 1 tir/tour.', en:'Equip: range 2, 1 shot/turn.'} },
+  w_ions: { icon:'🔵', label:{fr:'Canon à Ions', en:'Ion Cannon'}, effect:{fr:'Équipe : portée 3, 1 tir/tour.', en:'Equip: range 3, 1 shot/turn.'} },
+  w_rail: { icon:'🛰️', label:{fr:'Fusil à Rail', en:'Rail Gun'}, effect:{fr:'Équipe : portée 4, 1 tir/tour.', en:'Equip: range 4, 1 shot/turn.'} },
+  w_harpon: { icon:'🪝', label:{fr:'Harpon Grav.', en:'Grav. Harpoon'}, effect:{fr:'Équipe : portée 5, 1 tir/tour.', en:'Equip: range 5, 1 shot/turn.'} },
+  eq_bouclier: { icon:'🛡️', label:{fr:'Bouclier Déf.', en:'Deflector Shield'}, effect:{fr:'Équipe : +1 distance perçue par les autres.', en:'Equip: +1 distance others perceive to you.'} },
+  eq_propulseur: { icon:'🚀', label:{fr:'Propulseur', en:'Thruster'}, effect:{fr:'Équipe : -1 distance perçue vers les autres.', en:'Equip: -1 distance you perceive to others.'} },
+  eq_coque: { icon:'🧱', label:{fr:'Coque Renf.', en:'Reinforced Hull'}, effect:{fr:'Équipe : esquive automatique à réserve.', en:'Equip: automatic reserve dodge.'} },
+  eq_nanobots: { icon:'💉', label:{fr:'Nanobots', en:'Nanobots'}, effect:{fr:'+1 vie instantané.', en:'Instant +1 life.'} },
+  eq_stase: { icon:'🧊', label:{fr:'Champ Stase', en:'Stasis Field'}, effect:{fr:'La cible passe son prochain tour.', en:'Target skips their next turn.'} },
+  eq_bombe: { icon:'💣', label:{fr:'Bombe', en:'Bomb'}, effect:{fr:'Attache une bombe (2 tours).', en:'Attaches a bomb (2 turns).'} },
+  sp_duel: { icon:'⚔️', label:{fr:'Duel Spatial', en:'Space Duel'}, effect:{fr:'Duel au Tir! ; ignore la distance.', en:'Shoot!-based duel; ignores distance.'} },
+  sp_panique: { icon:'🌀', label:{fr:'Panique Grav.', en:'Grav. Panic'}, effect:{fr:'Vole 1 carte au hasard, portée 1.', en:'Steals 1 random card, range 1.'} },
+  sp_raid: { icon:'⚡', label:{fr:'Raid Éclair', en:'Lightning Raid'}, effect:{fr:'Fait défausser 1 carte, portée illimitée.', en:'Forces a discard, unlimited range.'} },
+  sp_gatling: { icon:'💥', label:{fr:'Tourelle Gatling', en:'Gatling Turret'}, effect:{fr:'Touche tous les adversaires.', en:'Hits every opponent.'} },
+  sp_ravito: { icon:'📦', label:{fr:'Ravitaillement', en:'Resupply'}, effect:{fr:'Pioche 2 cartes bonus.', en:'Draw 2 bonus cards.'} },
+};
+
+function buildDeck(){
+  let cards = [];
+  for(let i=0;i<16;i++) cards.push('tir');
+  for(let i=0;i<12;i++) cards.push('esquive');
+  cards.push('w_pulse','w_pulse','w_ions','w_ions','w_rail','w_harpon');
+  cards.push('eq_nanobots','eq_nanobots','eq_bouclier','eq_propulseur','eq_coque','eq_stase','eq_bombe');
+  cards.push('sp_duel','sp_duel','sp_panique','sp_panique','sp_raid','sp_raid','sp_gatling','sp_ravito','sp_ravito');
+  return shuffle(cards);
+}
+
+// Tire un Signal Cosmique aléatoire et applique ses effets. Écrit directement en base pour les
+// joueurs affectés ; retourne les champs à fusionner dans game_state + les lignes de journal.
+async function applyCosmicSignal(gs){
+  const signal = SIGNALS[Math.floor(Math.random() * SIGNALS.length)];
+  let extra = {};
+  let logLines = [`${signal.icon} ${tr('Signal Cosmique','Cosmic Signal')} : ${L(signal.name)} — ${L(signal.desc)}`];
+  const alive = state.players.filter(p => p.is_alive);
+
+  if(signal.id === 'nebuleuse'){
+    extra.rangeModifier = (gs.rangeModifier || 0) + 1;
+  } else if(signal.id === 'asteroides'){
+    extra.rangeModifier = (gs.rangeModifier || 0) - 1;
+  } else if(signal.id === 'tempete'){
+    for(const p of alive){
+      if(p.hand && p.hand.length > 0){
+        const idx = Math.floor(Math.random() * p.hand.length);
+        const newHand = [...p.hand];
+        newHand.splice(idx, 1);
+        await sb.from('caes_players').update({ hand: newHand }).eq('id', p.id);
+      }
+    }
+  } else if(signal.id === 'trounoir'){
+    const maxCount = alive.reduce((m,p) => Math.max(m, (p.hand||[]).length), 0);
+    if(maxCount > 0){
+      const targets = alive.filter(p => (p.hand||[]).length === maxCount);
+      for(const p of targets){
+        const loseCount = Math.ceil(p.hand.length / 2);
+        const newHand = [...p.hand];
+        for(let i=0;i<loseCount;i++){
+          const idx = Math.floor(Math.random() * newHand.length);
+          newHand.splice(idx, 1);
+        }
+        await sb.from('caes_players').update({ hand: newHand }).eq('id', p.id);
+        logLines.push(tr(`${p.name} perd ${loseCount} carte(s) (Trou Noir).`, `${p.name} loses ${loseCount} card(s) (Black Hole).`));
+      }
+    }
+  } else if(signal.id === 'trouver'){
+    const seats = alive.map(p => p.seat_index);
+    const shuffledSeats = shuffle([...seats]);
+    const mapping = {};
+    alive.forEach((p,i) => { mapping[p.seat_index] = shuffledSeats[i]; });
+    for(const p of alive){
+      await sb.from('caes_players').update({ seat_index: mapping[p.seat_index] }).eq('id', p.id);
+    }
+    if(gs.turnSeat !== undefined && mapping[gs.turnSeat] !== undefined) extra.turnSeat = mapping[gs.turnSeat];
+    if(gs.bomb && mapping[gs.bomb.seat] !== undefined) extra.bomb = { ...gs.bomb, seat: mapping[gs.bomb.seat] };
+    if(gs.stasedSeat !== null && gs.stasedSeat !== undefined && mapping[gs.stasedSeat] !== undefined) extra.stasedSeat = mapping[gs.stasedSeat];
+    logLines.push(tr('Les positions autour du vaisseau ont été redistribuées !','Everyone\'s positions around the ship have been reshuffled!'));
+  } else if(signal.id === 'supernova'){
+    for(const p of alive){
+      const newLife = Math.max(0, p.life - 1);
+      await sb.from('caes_players').update({ life: newLife, is_alive: newLife > 0 }).eq('id', p.id);
+      if(newLife <= 0) logLines.push(tr(`💀 ${p.name} est éliminé par la Supernova.`, `💀 ${p.name} is eliminated by the Supernova.`));
+    }
+  } else if(signal.id === 'geante'){
+    for(const p of alive){
+      const maxLife = getMaxLife(p.character, p.role);
+      const newLife = Math.min(maxLife, p.life + 1);
+      await sb.from('caes_players').update({ life: newLife }).eq('id', p.id);
+    }
+  } else if(signal.id === 'pulsar'){
+    if(alive.length > 0){
+      const chosen = alive[Math.floor(Math.random() * alive.length)];
+      extra.revealedRoles = [...(gs.revealedRoles || []), chosen.seat_index];
+      logLines.push(tr(`Le rôle de ${chosen.name} est révélé à tous !`, `${chosen.name}'s role is revealed to everyone!`));
+    }
+  }
+
+  await refreshPlayers();
+  return { extra, logLines };
+}
+
+async function reshuffleWithSignal(deck, discard, gs){
+  const newDeck = shuffle([...deck, ...discard]);
+  const { extra, logLines } = await applyCosmicSignal(gs);
+  return { deck: newDeck, discard: [], extra, logLines };
+}
+
+function getAliveOrderedSeats(players){
+  return players.filter(p => p.is_alive).sort((a,b) => a.seat_index - b.seat_index).map(p => p.seat_index);
+}
+
+function nextAliveSeatAfter(seatIndex, players){
+  const order = getAliveOrderedSeats(players);
+  if(order.length === 0) return null;
+  for(const s of order){ if(s > seatIndex) return s; }
+  return order[0];
+}
+
+function distanceBetween(fromSeat, toSeat, players){
+  const order = getAliveOrderedSeats(players);
+  const iF = order.indexOf(fromSeat), iT = order.indexOf(toSeat);
+  if(iF === -1 || iT === -1) return Infinity;
+  const n = order.length;
+  const diff = Math.abs(iF - iT);
+  return Math.min(diff, n - diff);
+}
+
+async function fetchRoom(){
+  const { data } = await sb.from('caes_rooms').select('*').eq('id', state.roomId).single();
+  return data;
+}
+
+async function saveGameState(gs){
+  await sb.from('caes_rooms').update({ game_state: gs }).eq('id', state.roomId);
+}
+
+let selectedCardIdx = null;
+let powerRangeMode = false;   // Amihan / Fyoom : ignorer la portée pour le prochain tir
+let powerSwapPickMode = false; // Alix Aeverse : choisir une carte à convertir
+let keep2Selection = [];       // Osmalin : indices des 2 cartes à garder après pioche de 4
+
+async function renderGame(){
+  const room = await fetchRoom();
+  await refreshPlayers();
+  const gs = room.game_state || {};
+  const me = state.players.find(p => p.id === state.playerId);
+  if(!me) return;
+
+  if(gs.winner){ renderWinner(gs); return; }
+
+  renderOrbitGame(gs);
+  renderMyCharCard(me);
+  renderTurnBanner(gs, me);
+  renderLog(gs);
+  renderPendingBox(gs, me);
+  renderDuelBox(gs, me);
+  renderHand(gs, me);
+  renderActionBar(gs, me);
+  renderPowerPanel(gs, me);
+
+  // Auto-draw en début de tour (le joueur dont c'est le tour tire 2 cartes)
+  if(gs.turnSeat === me.seat_index && gs.phase === 'draw' && !gs.pendingShot && !gs.pendingDuel){
+    await doDraw(gs, me);
+  }
+}
+
+function renderOrbitGame(gs){
+  const wrap = document.getElementById('orbit-3');
+  wrap.innerHTML = '<div class="orbit-ring"></div><div class="orbit-center"><b>' +
+    state.players.filter(p=>p.is_alive).length + `/4</b>${tr('EN VIE','ALIVE')}</div>`;
+  const radius = 42;
+  [0,1,2,3].forEach(seatIdx => {
+    const angle = (Math.PI * 2 * seatIdx / 4) - Math.PI/2;
+    const cx = 50 + radius * Math.cos(angle);
+    const cy = 50 + radius * Math.sin(angle);
+    const p = state.players.find(pl => pl.seat_index === seatIdx);
+    const seatEl = document.createElement('div');
+    seatEl.className = 'seat';
+    seatEl.style.left = cx + '%';
+    seatEl.style.top = cy + '%';
+    if(p){
+      seatEl.classList.add('filled');
+      if(p.id === state.playerId) seatEl.classList.add('me');
+      if(!p.is_alive) seatEl.classList.add('dead');
+      if(gs.turnSeat === p.seat_index && p.is_alive) seatEl.classList.add('turn');
+
+      const me = state.players.find(pl => pl.id === state.playerId);
+      const selectedCard = (me && selectedCardIdx !== null) ? me.hand[selectedCardIdx] : null;
+      let canTarget = false;
+      const baseOk = me && me.is_alive && p.is_alive && p.id !== me.id &&
+        gs.turnSeat === me.seat_index && gs.phase === 'action' && !gs.pendingShot && !gs.pendingDuel && selectedCard;
+      if(baseOk && selectedCard === 'tir'){
+        const weaponDef = WEAPONS[me.weapon || 'pistolet_laser'];
+        const shotsAvailable = weaponDef.unlimited || !gs.turnShotUsed;
+        const dist = getPerceivedDistance(me, p, state.players);
+        canTarget = shotsAvailable && (dist <= getEffectiveRange(me, gs.rangeModifier) || powerRangeMode);
+      } else if(baseOk && (selectedCard === 'eq_stase' || selectedCard === 'eq_bombe' || selectedCard === 'sp_duel' || selectedCard === 'sp_raid')){
+        canTarget = true;
+      } else if(baseOk && selectedCard === 'sp_panique'){
+        canTarget = distanceBetween(me.seat_index, p.seat_index, state.players) <= 1;
+      }
+      if(canTarget){
+        seatEl.classList.add('target-ok');
+        seatEl.onclick = () => {
+          if(selectedCard === 'tir') fireShot(p);
+          else if(selectedCard === 'eq_stase') applyStase(p);
+          else if(selectedCard === 'eq_bombe') attachBomb(p);
+          else if(selectedCard === 'sp_duel') startDuel(p);
+          else if(selectedCard === 'sp_panique') doPanique(p);
+          else if(selectedCard === 'sp_raid') doRaid(p);
+        };
+      }
+
+      const revealed = (gs.revealedRoles || []).includes(p.seat_index);
+      let roleLabel = (p.role === 'amiral') ? L(ROLE_INFO.amiral.short) :
+        (p.id === state.playerId || revealed) ? L(ROLE_INFO[p.role].short) : '';
+      const lifeRow = Array.from({length:getMaxLife(p.character, p.role)}).map((_,i) =>
+        `<span class="life-dot ${i < p.life ? 'on':''}"></span>`).join('');
+      const equipIcons = (p.equipment || []).map(e => EQUIPMENT_ICONS[e] || '').join('');
+      const bombBadge = (gs.bomb && gs.bomb.seat === p.seat_index) ? ' 💣' : '';
+      seatEl.innerHTML = `<div class="seat-name">${escapeHtml(p.name)}${bombBadge}</div>` +
+        (roleLabel ? `<div class="seat-role">${roleLabel}</div>` : '') +
+        (equipIcons ? `<div class="seat-role">${equipIcons}</div>` : '') +
+        `<div class="life-row">${lifeRow}</div>`;
+    } else {
+      seatEl.innerHTML = '<div class="seat-empty">＋</div>';
+    }
+    wrap.appendChild(seatEl);
+  });
+}
+
+function renderMyCharCard(me){
+  const el = document.getElementById('my-char-card');
+  const ch = getChar(me.character);
+  if(!ch){ el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  const portraitStyle = ch.img ? `style="background-image:url('${ch.img}')"` : '';
+  el.innerHTML = `<div class="mc-portrait" ${portraitStyle}>${ch.img ? '' : ch.icon}</div>
+    <div><div class="mc-name">${ch.icon} ${L(ch.name)}</div><div class="mc-power">${L(ch.power)}</div></div>`;
+}
+
+function renderTurnBanner(gs, me){
+  const el = document.getElementById('turn-banner');
+  const turnPlayer = state.players.find(p => p.seat_index === gs.turnSeat);
+  if(!turnPlayer){ el.textContent=''; return; }
+  const weaponDef = WEAPONS[me.weapon || 'pistolet_laser'];
+  const weaponTag = ` · ${weaponDef.icon} ${L(weaponDef.name)} (${tr('portée','range')} ${getEffectiveRange(me, gs.rangeModifier)})`;
+  if(turnPlayer.id === me.id){
+    el.textContent = tr("À toi de jouer","Your turn") + weaponTag;
+    el.classList.add('me');
+  } else {
+    el.textContent = tr(`Tour de ${turnPlayer.name}…`, `${turnPlayer.name}'s turn…`) + weaponTag;
+    el.classList.remove('me');
+  }
+}
+
+function renderLog(gs){
+  const el = document.getElementById('log-feed');
+  const lines = (gs.log || []).slice(-6).reverse();
+  el.innerHTML = lines.map(l => `<div>${escapeHtml(l)}</div>`).join('');
+}
+
+let reflectInProgress = false;
+
+function renderPendingBox(gs, me){
+  const box = document.getElementById('pending-box');
+  if(!gs.pendingShot){ box.style.display = 'none'; reflectInProgress = false; return; }
+  box.style.display = 'block';
+  const shooter = state.players.find(p => p.seat_index === gs.pendingShot.fromSeat);
+  const target = state.players.find(p => p.seat_index === gs.pendingShot.toSeat);
+  if(target && target.id === me.id){
+    if(target.character === 'krysalla' && !target.power_used){
+      box.innerHTML = `<div class="pending-text">💎 ${tr("Ton bouclier cristallin renvoie ce tir automatiquement…","Your crystal shield automatically deflects this shot…")}</div>`;
+      if(!reflectInProgress){ reflectInProgress = true; resolveReflect(); }
+      return;
+    }
+    const canDisperse = target.character === 'fyoom' && !target.power_used;
+    const canCoque = (target.equipment || []).includes('coque');
+    box.innerHTML = `<div class="pending-text">${escapeHtml(shooter.name)} ${tr("te tire dessus !","is shooting at you!")}</div>
+      <div class="pending-actions">
+        <button class="btn" id="btn-dodge">🌀 ${tr('Esquiver','Dodge')}</button>
+        ${canDisperse ? `<button class="btn power-btn" id="btn-disperse">💨 ${tr('Se disperser','Disperse')}</button>` : ''}
+        ${canCoque ? `<button class="btn power-btn" id="btn-coque">🧱 ${tr('Coque Renforcée','Reinforced Hull')}</button>` : ''}
+        <button class="btn" id="btn-take-hit">💥 ${tr('Encaisser','Take the hit')}</button>
+      </div>`;
+    const hasEsquive = me.hand.includes('esquive');
+    const dodgeBtn = document.getElementById('btn-dodge');
+    if(!hasEsquive) dodgeBtn.disabled = true;
+    dodgeBtn.onclick = () => resolveShot(true);
+    if(canDisperse) document.getElementById('btn-disperse').onclick = () => resolveDisperse();
+    if(canCoque) document.getElementById('btn-coque').onclick = () => resolveCoqueDodge();
+    document.getElementById('btn-take-hit').onclick = () => resolveShot(false);
+  } else {
+    box.innerHTML = `<div class="pending-text">${escapeHtml(shooter.name)} ${tr("tire sur","shoots at")} ${escapeHtml(target.name)}, ${tr("en attente de réponse…","waiting for a response…")}</div>`;
+  }
+}
+
+async function resolveReflect(){
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  if(!gs.pendingShot){ reflectInProgress = false; return; }
+  const target = state.players.find(p => p.seat_index === gs.pendingShot.toSeat); // Krysalla
+  const order = getAliveOrderedSeats(state.players);
+  const idx = order.indexOf(target.seat_index);
+  const neighborSeats = [order[(idx+1)%order.length], order[(idx-1+order.length)%order.length]]
+    .filter(s => s !== target.seat_index);
+  const chosenSeat = neighborSeats[Math.floor(Math.random()*neighborSeats.length)];
+  const newTarget = state.players.find(p => p.seat_index === chosenSeat);
+
+  await sb.from('caes_players').update({ power_used: true }).eq('id', target.id);
+  let log = [...gs.log, tr(`${target.name} renvoie le tir vers ${newTarget.name} !`, `${target.name} deflects the shot toward ${newTarget.name}!`)];
+  const { newLife, healed } = applyDamageWithPowers(null, newTarget, 1, false);
+  const maxLife = getMaxLife(newTarget.character, newTarget.role);
+  await sb.from('caes_players').update({ life: newLife, is_alive: newLife > 0,
+    power_used: healed ? true : newTarget.power_used }).eq('id', newTarget.id);
+  log.push(healed ? tr(`${newTarget.name} tombe à 1 vie mais régénère aussitôt (${newLife}/${maxLife}).`, `${newTarget.name} drops to 1 life but instantly regenerates (${newLife}/${maxLife}).`)
+                   : tr(`${newTarget.name} encaisse 1 dégât (${newLife}/${maxLife}).`, `${newTarget.name} takes 1 damage (${newLife}/${maxLife}).`));
+  if(newLife <= 0) log.push(tr(`💀 ${newTarget.name} est éliminé.`, `💀 ${newTarget.name} is eliminated.`));
+
+  await refreshPlayers();
+  const victory = checkVictory(state.players);
+  const shooterSeat = gs.pendingShot.fromSeat;
+  const { pendingShot, gatlingQueue } = victory ? { pendingShot: null, gatlingQueue: undefined } : nextGatlingStep(gs, shooterSeat);
+  await saveGameState({ ...gs, pendingShot, gatlingQueue, log, winner: victory ? victory.winner : null });
+  reflectInProgress = false;
+}
+
+// Calcule les dégâts finaux en tenant compte des pouvoirs Skaï (bonus, 1x/tour) et Krebon (soin à 1 pv).
+// shooter peut être null (cas du renvoi de Krysalla, dégât brut, pas de bonus Skaï).
+function applyDamageWithPowers(shooter, target, baseDmg, skaiBonusAvailable){
+  let dmg = baseDmg;
+  let bonusApplied = false;
+  if(shooter && shooter.character === 'skai' && skaiBonusAvailable && target.life < getMaxLife(target.character, target.role)){
+    dmg += 1;
+    bonusApplied = true;
+  }
+  let newLife = Math.max(0, target.life - dmg);
+  let healed = false;
+  if(newLife === 1 && target.character === 'krebon' && !target.power_used){
+    newLife = 2;
+    healed = true;
+  }
+  return { newLife, healed, bonusApplied };
+}
+
+async function resolveDisperse(){
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  if(!gs.pendingShot) return;
+  const target = state.players.find(p => p.seat_index === gs.pendingShot.toSeat);
+  await sb.from('caes_players').update({ power_used: true }).eq('id', target.id);
+  const { pendingShot, gatlingQueue } = nextGatlingStep(gs, gs.pendingShot.fromSeat);
+  const newGs = { ...gs, pendingShot, gatlingQueue,
+    log: [...gs.log, tr(`${target.name} se disperse et évite le tir (pouvoir) !`, `${target.name} disperses and dodges the shot (power)!`)] };
+  await saveGameState(newGs);
+}
+
+async function resolveCoqueDodge(){
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  if(!gs.pendingShot) return;
+  const target = state.players.find(p => p.seat_index === gs.pendingShot.toSeat);
+  const newEquipment = (target.equipment || []).filter(e => e !== 'coque');
+  await sb.from('caes_players').update({ equipment: newEquipment }).eq('id', target.id);
+  const { pendingShot, gatlingQueue } = nextGatlingStep(gs, gs.pendingShot.fromSeat);
+  const newGs = { ...gs, pendingShot, gatlingQueue,
+    log: [...gs.log, tr(`La Coque Renforcée de ${target.name} absorbe le tir (et se brise) !`, `${target.name}'s Reinforced Hull absorbs the shot (and breaks) !`)] };
+  await saveGameState(newGs);
+}
+
+async function resolveShot(dodged){
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  if(!gs.pendingShot) return;
+  const target = state.players.find(p => p.seat_index === gs.pendingShot.toSeat);
+  const shooter = state.players.find(p => p.seat_index === gs.pendingShot.fromSeat);
+  let log = [...gs.log];
+  let deck = gs.deck, discard = gs.discard;
+  let skaiBonusUsedThisTurn = gs.skaiBonusUsedThisTurn;
+  let miloDrawUsedThisTurn = gs.miloDrawUsedThisTurn;
+  let signalExtra = {};
+
+  if(dodged){
+    const newHand = [...target.hand];
+    const eIdx = newHand.indexOf('esquive');
+    if(eIdx !== -1) newHand.splice(eIdx, 1);
+    await sb.from('caes_players').update({ hand: newHand }).eq('id', target.id);
+    log.push(tr(`${target.name} esquive le tir !`, `${target.name} dodges the shot!`));
+  } else {
+    const skaiBonusAvailable = !gs.skaiBonusUsedThisTurn;
+    const { newLife, healed, bonusApplied } = applyDamageWithPowers(shooter, target, 1, skaiBonusAvailable);
+    if(bonusApplied) skaiBonusUsedThisTurn = true;
+    const targetUpdate = { life: newLife, is_alive: newLife > 0 };
+    if(healed) targetUpdate.power_used = true;
+    const maxLife = getMaxLife(target.character, target.role);
+
+    // Milo Chance : pioche une carte en encaissant des dégâts (max 1 fois par tour).
+    let milkDrawn = null;
+    if(target.character === 'milo' && !gs.miloDrawUsedThisTurn){
+      if(deck.length < 1){
+        const r = await reshuffleWithSignal(deck, discard, gs);
+        deck = r.deck; discard = r.discard; signalExtra = r.extra;
+        if(r.logLines.length) log.push(...r.logLines);
+      }
+      milkDrawn = deck.splice(0,1)[0];
+      targetUpdate.hand = [...target.hand, milkDrawn];
+      miloDrawUsedThisTurn = true;
+    }
+
+    // Épave & pillage : si ce tir est fatal, le tireur récupère 1 carte au hasard sur l'épave.
+    let lootedCard = null;
+    if(newLife <= 0){
+      const handBeforeLoot = targetUpdate.hand || target.hand;
+      if(handBeforeLoot && handBeforeLoot.length > 0){
+        const lootIdx = Math.floor(Math.random() * handBeforeLoot.length);
+        lootedCard = handBeforeLoot[lootIdx];
+        const remainingHand = [...handBeforeLoot];
+        remainingHand.splice(lootIdx, 1);
+        targetUpdate.hand = remainingHand;
+      }
+    }
+    await sb.from('caes_players').update(targetUpdate).eq('id', target.id);
+    if(lootedCard){
+      const shooterFresh = state.players.find(p => p.id === shooter.id) || shooter;
+      await sb.from('caes_players').update({ hand: [...shooterFresh.hand, lootedCard] }).eq('id', shooter.id);
+    }
+
+    log.push(healed ? tr(`${target.name} tombe à 1 vie mais régénère aussitôt (${newLife}/${maxLife}).`, `${target.name} drops to 1 life but instantly regenerates (${newLife}/${maxLife}).`)
+                     : tr(`${target.name} encaisse ${bonusApplied ? '2 dégâts (pouvoir)' : 'des dégâts'} (${newLife}/${maxLife}).`, `${target.name} takes ${bonusApplied ? '2 damage (power)' : 'damage'} (${newLife}/${maxLife}).`));
+    if(milkDrawn) log.push(tr(`${target.name} pioche 1 carte (pouvoir).`, `${target.name} draws 1 card (power).`));
+    if(newLife <= 0){
+      log.push(tr(`💀 ${target.name} est éliminé.`, `💀 ${target.name} is eliminated.`));
+      if(lootedCard) log.push(tr(`${shooter.name} pille une carte sur l'épave de ${target.name}.`, `${shooter.name} loots a card from ${target.name}'s wreck.`));
+    }
+  }
+
+  await refreshPlayers();
+  const victory = checkVictory(state.players);
+  const shooterSeat = gs.pendingShot.fromSeat;
+  const { pendingShot, gatlingQueue } = victory ? { pendingShot: null, gatlingQueue: undefined } : nextGatlingStep(gs, shooterSeat);
+
+  const newGs = { ...gs, deck, discard, pendingShot, gatlingQueue, log, skaiBonusUsedThisTurn, miloDrawUsedThisTurn,
+    ...signalExtra,
+    winner: victory ? victory.winner : null };
+  await saveGameState(newGs);
+}
+
+function renderHand(gs, me){
+  const el = document.getElementById('hand-area');
+  el.innerHTML = '';
+  const isKeep2 = gs.phase === 'keep2' && gs.turnSeat === me.seat_index;
+  const myTurn = gs.turnSeat === me.seat_index && gs.phase === 'action' && !gs.pendingShot && !gs.pendingDuel;
+  const targetingCards = ['tir', 'eq_stase', 'eq_bombe', 'sp_duel', 'sp_panique', 'sp_raid'];
+  const instantCards = ['w_pulse', 'w_ions', 'w_rail', 'w_harpon', 'eq_bouclier', 'eq_propulseur', 'eq_coque', 'eq_nanobots', 'sp_gatling', 'sp_ravito'];
+  (me.hand || []).forEach((card, idx) => {
+    const info = CARD_INFO[card];
+    const c = document.createElement('div');
+    const isSelected = isKeep2 ? keep2Selection.includes(idx) : selectedCardIdx === idx;
+    const playable = targetingCards.includes(card) || instantCards.includes(card) || card === 'esquive';
+    const isDisabled = isKeep2 ? false : (!myTurn || !playable);
+    c.className = 'card' + (isSelected ? ' selected' : '') + (isDisabled ? ' disabled' : '');
+    c.innerHTML = `<div class="card-icon-zone">${info.icon}</div>
+      <div class="card-info"><div class="card-name">${L(info.label)}</div><div class="card-effect">${L(info.effect)}</div></div>`;
+    if(isKeep2){
+      c.classList.remove('disabled');
+      c.onclick = () => {
+        if(keep2Selection.includes(idx)) keep2Selection = keep2Selection.filter(i => i !== idx);
+        else if(keep2Selection.length < 2) keep2Selection = [...keep2Selection, idx];
+        renderGame();
+      };
+    } else if(myTurn && targetingCards.includes(card)){
+      c.onclick = () => { selectedCardIdx = (selectedCardIdx === idx ? null : idx); renderGame(); };
+    } else if(myTurn && card === 'esquive'){
+      // Pas de ciblage propre : sélectionnable uniquement comme carburant pour Kantu/Alix.
+      c.onclick = () => { selectedCardIdx = (selectedCardIdx === idx ? null : idx); renderGame(); };
+    } else if(myTurn && WEAPON_CARD_TO_ID[card]){
+      c.onclick = () => equipWeapon(idx, card);
+    } else if(myTurn && card === 'eq_nanobots'){
+      c.onclick = () => useNanobots(idx);
+    } else if(myTurn && card === 'sp_gatling'){
+      c.onclick = () => playGatling(idx);
+    } else if(myTurn && card === 'sp_ravito'){
+      c.onclick = () => playRavito(idx);
+    } else if(myTurn && (card === 'eq_bouclier' || card === 'eq_propulseur' || card === 'eq_coque')){
+      c.onclick = () => equipItem(idx, card);
+    }
+    el.appendChild(c);
+  });
+}
+
+function renderPowerPanel(gs, me){
+  const el = document.getElementById('power-panel');
+  el.innerHTML = '';
+  const myTurn = gs.turnSeat === me.seat_index && gs.phase === 'action' && !gs.pendingShot && !gs.pendingDuel;
+
+  // Bombe à Retardement : badge visible pour tous, boutons de passage réservés au porteur.
+  if(gs.bomb && gs.bomb.seat === me.seat_index){
+    const badge = document.createElement('div');
+    badge.className = 'power-badge';
+    badge.textContent = tr(`💣 Tu portes la bombe (${gs.bomb.turnsLeft} tour${gs.bomb.turnsLeft>1?'s':''} avant explosion)`, `💣 You're carrying the bomb (${gs.bomb.turnsLeft} turn${gs.bomb.turnsLeft>1?'s':''} until it explodes)`);
+    el.appendChild(badge);
+    if(myTurn){
+      const order = getAliveOrderedSeats(state.players);
+      const idx = order.indexOf(me.seat_index);
+      const leftSeat = order[(idx-1+order.length)%order.length];
+      const rightSeat = order[(idx+1)%order.length];
+      const leftP = state.players.find(p => p.seat_index === leftSeat);
+      const rightP = state.players.find(p => p.seat_index === rightSeat);
+      const btnL = document.createElement('button');
+      btnL.className = 'btn power-btn'; btnL.style.marginTop = '6px'; btnL.style.marginBottom = '6px';
+      btnL.textContent = tr(`➡️ Refiler la bombe à ${leftP.name}`, `➡️ Pass the bomb to ${leftP.name}`);
+      btnL.onclick = () => passBomb(leftSeat);
+      el.appendChild(btnL);
+      if(rightSeat !== leftSeat){
+        const btnR = document.createElement('button');
+        btnR.className = 'btn power-btn'; btnR.style.marginBottom = '8px';
+        btnR.textContent = tr(`➡️ Refiler la bombe à ${rightP.name}`, `➡️ Pass the bomb to ${rightP.name}`);
+        btnR.onclick = () => passBomb(rightSeat);
+        el.appendChild(btnR);
+      }
+    }
+  }
+
+  // Zovienne Prévost : voit la carte du dessus de la pioche, en permanence.
+  if(me.character === 'zovienne' && gs.deck && gs.deck.length){
+    const info = CARD_INFO[gs.deck[0]];
+    const badge = document.createElement('div');
+    badge.className = 'power-badge';
+    badge.textContent = `👁️ ${tr('Prochaine carte','Next card')} : ${info.icon} ${L(info.label)}`;
+    el.appendChild(badge);
+    if(myTurn && !me.power_used){
+      const btn = document.createElement('button');
+      btn.className = 'btn power-btn';
+      btn.style.marginBottom = '8px';
+      btn.textContent = '🔀 ' + tr('Renvoyer cette carte au fond et en révéler une autre','Bury this card and reveal a new one');
+      btn.onclick = () => zovienneBuryTopCard(me);
+      el.appendChild(btn);
+    }
+  }
+
+  if(!myTurn) return;
+
+  // Elia Chève : une fois par partie, ignore complètement la distance pour un tir.
+  if(me.character === 'elia' && !me.power_used){
+    const btn = document.createElement('button');
+    btn.className = 'btn power-btn';
+    btn.style.marginBottom = '8px';
+    btn.textContent = powerRangeMode ? '📡 ' + tr('Pouvoir activé — choisis une cible (Tir!)','Power active — pick a target (Shoot!)') : '📡 ' + tr('Activer le pouvoir : ignorer la distance','Activate power: ignore distance');
+    btn.onclick = () => { powerRangeMode = !powerRangeMode; renderGame(); };
+    el.appendChild(btn);
+  }
+
+  // Kantu Vey : jusqu'à 2 fois par tour, défausse une carte sélectionnée pour en piocher une autre.
+  const kantuLeft = 2 - (gs.turnSwapCount || 0);
+  const selectedIsFodder = selectedCardIdx !== null && ['tir','esquive'].includes(me.hand[selectedCardIdx]);
+  if(me.character === 'kantu' && kantuLeft > 0 && selectedIsFodder){
+    const btn = document.createElement('button');
+    btn.className = 'btn power-btn';
+    btn.style.marginBottom = '8px';
+    btn.textContent = tr(`🔄 Défausser cette carte et en piocher une autre (${kantuLeft} restant${kantuLeft>1?'s':''})`, `🔄 Discard this card and draw another (${kantuLeft} left)`);
+    btn.onclick = () => kantuSwapDraw(gs, me);
+    el.appendChild(btn);
+  }
+
+  // Alix Aeverse : 2 utilisations par partie, convertit une carte sélectionnée (Tir! <-> Esquive!).
+  const alixLeft = gs.alixCharges !== undefined ? gs.alixCharges : 2;
+  if(me.character === 'alix' && alixLeft > 0 && selectedIsFodder){
+    const btn = document.createElement('button');
+    btn.className = 'btn power-btn';
+    btn.style.marginBottom = '8px';
+    btn.textContent = tr(`♾️ Convertir cette carte (${alixLeft} restante${alixLeft>1?'s':''})`, `♾️ Convert this card (${alixLeft} left)`);
+    btn.onclick = () => alixConvertCard(me);
+    el.appendChild(btn);
+  }
+}
+
+async function zovienneBuryTopCard(me){
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  if(!gs.deck || gs.deck.length < 1) return;
+  let deck = [...gs.deck];
+  const buried = deck.shift();
+  deck.push(buried);
+  await sb.from('caes_players').update({ power_used: true }).eq('id', me.id);
+  await saveGameState({ ...gs, deck, log: [...gs.log, tr(`${me.name} renvoie une carte au fond de la pioche (pouvoir).`, `${me.name} buries a card at the bottom of the deck (power).`)] });
+}
+
+async function kantuSwapDraw(gs, me){
+  if(selectedCardIdx === null) return;
+  const room = await fetchRoom();
+  const freshGs = room.game_state;
+  const usedSoFar = freshGs.turnSwapCount || 0;
+  if(usedSoFar >= 2) return;
+  let { deck, discard } = freshGs;
+  let signalExtra = {}, signalLog = [];
+  if(deck.length < 1){
+    const r = await reshuffleWithSignal(deck, discard, freshGs);
+    deck = r.deck; discard = r.discard; signalExtra = r.extra; signalLog = r.logLines;
+  }
+  const drawn = deck.splice(0,1)[0];
+  const newHand = [...me.hand];
+  const discardedCard = newHand.splice(selectedCardIdx, 1)[0];
+  newHand.push(drawn);
+  selectedCardIdx = null;
+  await sb.from('caes_players').update({ hand: newHand }).eq('id', me.id);
+  const signalVictory = signalLog.length ? checkVictory(state.players) : null;
+  await saveGameState({ ...freshGs, deck, discard: [...discard, discardedCard], turnSwapCount: usedSoFar + 1, ...signalExtra,
+    winner: signalVictory ? signalVictory.winner : freshGs.winner,
+    log: [...freshGs.log, ...signalLog, tr(`${me.name} échange une carte (pouvoir).`, `${me.name} swaps a card (power).`)] });
+}
+
+async function alixConvertCard(me){
+  if(selectedCardIdx === null) return;
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  const left = gs.alixCharges !== undefined ? gs.alixCharges : 2;
+  if(left <= 0) return;
+  const newHand = [...me.hand];
+  newHand[selectedCardIdx] = newHand[selectedCardIdx] === 'tir' ? 'esquive' : 'tir';
+  selectedCardIdx = null;
+  await sb.from('caes_players').update({ hand: newHand }).eq('id', me.id);
+  await saveGameState({ ...gs, alixCharges: left - 1, log: [...gs.log, tr(`${me.name} transforme une carte (pouvoir).`, `${me.name} converts a card (power).`)] });
+}
+
+function renderActionBar(gs, me){
+  const el = document.getElementById('action-bar');
+  el.innerHTML = '';
+  const myTurn = gs.turnSeat === me.seat_index && gs.phase === 'action' && !gs.pendingShot && !gs.pendingDuel;
+  const isKeep2 = gs.phase === 'keep2' && gs.turnSeat === me.seat_index;
+  if(isKeep2){
+    const btn = document.createElement('button');
+    btn.className = 'btn primary';
+    btn.disabled = keep2Selection.length !== 2;
+    btn.textContent = tr(`Garder ces ${keep2Selection.length}/2 cartes`, `Keep these ${keep2Selection.length}/2 cards`);
+    btn.onclick = () => confirmKeep2(me);
+    el.appendChild(btn);
+  } else if(myTurn){
+    const btn = document.createElement('button');
+    btn.className = 'btn primary';
+    btn.textContent = tr('Terminer le tour','End turn');
+    btn.onclick = () => endTurn(gs, me);
+    el.appendChild(btn);
+  } else if(gs.phase === 'discard' && gs.turnSeat === me.seat_index){
+    const hint = document.createElement('div');
+    hint.className = 'hint';
+    hint.textContent = tr(`Défausse tes cartes en trop (touche ta main jusqu'à ${me.life} cartes)`, `Discard down to ${me.life} cards`);
+    el.appendChild(hint);
+  }
+}
+
+async function doDraw(gs, me){
+  let { deck, discard } = gs;
+  let bomb = gs.bomb;
+  let bombLog = [];
+  let killedByBomb = false;
+
+  if(bomb && bomb.seat === me.seat_index){
+    const turnsLeft = bomb.turnsLeft - 1;
+    if(turnsLeft <= 0){
+      const newLife = Math.max(0, me.life - 2);
+      await sb.from('caes_players').update({ life: newLife, is_alive: newLife > 0 }).eq('id', me.id);
+      bombLog.push(tr(`💣 La bombe explose chez ${me.name} (-2 vies) !`, `💣 The bomb explodes on ${me.name} (-2 life)!`));
+      if(newLife <= 0){ bombLog.push(tr(`💀 ${me.name} est éliminé.`, `💀 ${me.name} is eliminated.`)); killedByBomb = true; }
+      bomb = null;
+      await refreshPlayers();
+    } else {
+      bomb = { ...bomb, turnsLeft };
+      bombLog.push(tr(`💣 La bombe tique chez ${me.name} (${turnsLeft} tour${turnsLeft>1?'s':''} avant explosion).`, `💣 The bomb ticks on ${me.name} (${turnsLeft} turn${turnsLeft>1?'s':''} until it explodes).`));
+    }
+  }
+
+  const victory = killedByBomb ? checkVictory(state.players) : null;
+  if(victory){
+    await saveGameState({ ...gs, bomb, log: [...gs.log, ...bombLog], winner: victory.winner });
+    return;
+  }
+  if(killedByBomb){
+    const nextSeat = nextAliveSeatAfter(me.seat_index, state.players);
+    await saveGameState({ ...gs, deck, discard, bomb, turnSeat: nextSeat, phase: 'draw', turnShotUsed: false,
+      log: [...gs.log, ...bombLog, tr(`Fin de tour de ${me.name}.`, `${me.name}'s turn ends.`)] });
+    return;
+  }
+
+  const drawCount = me.character === 'osmalin' ? 4 : 2;
+  let signalExtra = {}, signalLog = [];
+  if(deck.length < drawCount){
+    const r = await reshuffleWithSignal(deck, discard, gs);
+    deck = r.deck; discard = r.discard; signalExtra = r.extra; signalLog = r.logLines;
+  }
+  const drawn = deck.splice(0, drawCount);
+  const freshMe = state.players.find(p => p.id === me.id) || me;
+  const newHand = [...freshMe.hand, ...drawn];
+  await sb.from('caes_players').update({ hand: newHand }).eq('id', me.id);
+  const logMsg = me.character === 'osmalin'
+    ? tr(`${me.name} pioche 4 cartes (pouvoir) — garde-en 2 avant de continuer.`, `${me.name} draws 4 cards (power) — keep 2 before continuing.`)
+    : tr(`${me.name} pioche 2 cartes.`, `${me.name} draws 2 cards.`);
+
+  const signalVictory = signalLog.length ? checkVictory(state.players) : null;
+  const newGs = { ...gs, deck, discard, bomb, turnShotUsed: false, ...signalExtra,
+    phase: signalVictory ? gs.phase : (me.character === 'osmalin' ? 'keep2' : 'action'),
+    winner: signalVictory ? signalVictory.winner : gs.winner,
+    log: [...gs.log, ...bombLog, ...signalLog, logMsg] };
+  await saveGameState(newGs);
+}
+
+async function confirmKeep2(me){
+  if(keep2Selection.length !== 2) return;
+  const kept = keep2Selection.map(i => me.hand[i]);
+  const discarded = me.hand.filter((_, i) => !keep2Selection.includes(i));
+  keep2Selection = [];
+  await sb.from('caes_players').update({ hand: kept }).eq('id', me.id);
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  await saveGameState({ ...gs, discard: [...gs.discard, ...discarded], phase: 'action',
+    log: [...gs.log, tr(`${me.name} garde 2 cartes.`, `${me.name} keeps 2 cards.`)] });
+}
+
+async function fireShot(target){
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  const me = state.players.find(p => p.id === state.playerId);
+  if(gs.pendingShot) return; // déjà un tir en attente
+  const weaponDef = WEAPONS[me.weapon || 'pistolet_laser'];
+  const dist = getPerceivedDistance(me, target, state.players);
+  const outOfRange = dist > getEffectiveRange(me, gs.rangeModifier);
+  const usingPower = outOfRange && powerRangeMode;
+  const newHand = [...me.hand];
+  newHand.splice(selectedCardIdx, 1);
+  selectedCardIdx = null;
+  powerRangeMode = false;
+  const playerUpdate = { hand: newHand };
+  if(usingPower) playerUpdate.power_used = true;
+  await sb.from('caes_players').update(playerUpdate).eq('id', me.id);
+  const logMsg = usingPower
+    ? tr(`${me.name} tire sur ${target.name} à travers l'espace (pouvoir) !`, `${me.name} shoots ${target.name} across space (power)!`)
+    : tr(`${me.name} tire sur ${target.name} avec son ${L(weaponDef.name)} !`, `${me.name} shoots ${target.name} with their ${L(weaponDef.name)}!`);
+  const newGs = { ...gs, pendingShot: { fromSeat: me.seat_index, toSeat: target.seat_index },
+    turnShotUsed: weaponDef.unlimited ? gs.turnShotUsed : true,
+    log: [...gs.log, logMsg] };
+  await saveGameState(newGs);
+}
+
+async function equipWeapon(idx, card){
+  const me = state.players.find(p => p.id === state.playerId);
+  const newWeaponId = WEAPON_CARD_TO_ID[card];
+  const oldWeaponId = me.weapon || 'pistolet_laser';
+  const newHand = [...me.hand];
+  newHand.splice(idx, 1);
+  await sb.from('caes_players').update({ hand: newHand, weapon: newWeaponId }).eq('id', me.id);
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  let discard = gs.discard;
+  if(oldWeaponId !== 'pistolet_laser' && WEAPON_ID_TO_CARD[oldWeaponId]){
+    discard = [...discard, WEAPON_ID_TO_CARD[oldWeaponId]];
+  }
+  await saveGameState({ ...gs, discard,
+    log: [...gs.log, tr(`${me.name} équipe le ${L(WEAPONS[newWeaponId].name)}.`, `${me.name} equips the ${L(WEAPONS[newWeaponId].name)}.`)] });
+}
+
+async function equipItem(idx, card){
+  const me = state.players.find(p => p.id === state.playerId);
+  const itemId = card.replace('eq_', '');
+  const newHand = [...me.hand];
+  newHand.splice(idx, 1);
+  const newEquipment = [...(me.equipment || []), itemId];
+  await sb.from('caes_players').update({ hand: newHand, equipment: newEquipment }).eq('id', me.id);
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  await saveGameState({ ...gs, log: [...gs.log, tr(`${me.name} équipe ${L(CARD_INFO[card].label)}.`, `${me.name} equips ${L(CARD_INFO[card].label)}.`)] });
+}
+
+async function useNanobots(idx){
+  const me = state.players.find(p => p.id === state.playerId);
+  const newHand = [...me.hand];
+  newHand.splice(idx, 1);
+  const maxLife = getMaxLife(me.character, me.role);
+  const newLife = Math.min(maxLife, me.life + 1);
+  await sb.from('caes_players').update({ hand: newHand, life: newLife }).eq('id', me.id);
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  await saveGameState({ ...gs, discard: [...gs.discard, 'eq_nanobots'],
+    log: [...gs.log, tr(`${me.name} utilise les Nanobots de Soin (+1 vie).`, `${me.name} uses the Healing Nanobots (+1 life).`)] });
+}
+
+async function applyStase(target){
+  const me = state.players.find(p => p.id === state.playerId);
+  const newHand = [...me.hand];
+  newHand.splice(selectedCardIdx, 1);
+  selectedCardIdx = null;
+  await sb.from('caes_players').update({ hand: newHand }).eq('id', me.id);
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  await saveGameState({ ...gs, discard: [...gs.discard, 'eq_stase'], stasedSeat: target.seat_index,
+    log: [...gs.log, tr(`${me.name} fige ${target.name} dans un champ de stase — il passera son prochain tour.`, `${me.name} freezes ${target.name} in a stasis field — they'll skip their next turn.`)] });
+}
+
+async function attachBomb(target){
+  const me = state.players.find(p => p.id === state.playerId);
+  const newHand = [...me.hand];
+  newHand.splice(selectedCardIdx, 1);
+  selectedCardIdx = null;
+  await sb.from('caes_players').update({ hand: newHand }).eq('id', me.id);
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  await saveGameState({ ...gs, discard: [...gs.discard, 'eq_bombe'], bomb: { seat: target.seat_index, turnsLeft: 2 },
+    log: [...gs.log, tr(`${me.name} plante une Bombe à Retardement chez ${target.name} !`, `${me.name} plants a Time Bomb on ${target.name}!`)] });
+}
+
+async function passBomb(newSeat){
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  const me = state.players.find(p => p.id === state.playerId);
+  if(!gs.bomb || gs.bomb.seat !== me.seat_index) return;
+  const newHolder = state.players.find(p => p.seat_index === newSeat);
+  await saveGameState({ ...gs, bomb: { ...gs.bomb, seat: newSeat },
+    log: [...gs.log, tr(`${me.name} refile la bombe à ${newHolder.name} !`, `${me.name} passes the bomb to ${newHolder.name}!`)] });
+}
+
+// Détermine le prochain état pendingShot/gatlingQueue : continue la Tourelle Gatling si une file est active.
+function nextGatlingStep(gs, shooterSeat){
+  if(gs.gatlingQueue && gs.gatlingQueue.length){
+    const nextTarget = gs.gatlingQueue[0];
+    return { pendingShot: { fromSeat: shooterSeat, toSeat: nextTarget, isGatling: true },
+      gatlingQueue: gs.gatlingQueue.slice(1) };
+  }
+  return { pendingShot: null, gatlingQueue: undefined };
+}
+
+async function playGatling(idx){
+  const me = state.players.find(p => p.id === state.playerId);
+  const newHand = [...me.hand];
+  newHand.splice(idx, 1);
+  await sb.from('caes_players').update({ hand: newHand }).eq('id', me.id);
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  const targets = getAliveOrderedSeats(state.players).filter(s => s !== me.seat_index);
+  const discard = [...gs.discard, 'sp_gatling'];
+  if(targets.length === 0){
+    await saveGameState({ ...gs, discard, log: [...gs.log, tr(`${me.name} active la Tourelle Gatling, mais personne à portée.`, `${me.name} activates the Gatling Turret, but no one is in range.`)] });
+    return;
+  }
+  const [firstTarget, ...restTargets] = targets;
+  await saveGameState({ ...gs, discard, gatlingQueue: restTargets,
+    pendingShot: { fromSeat: me.seat_index, toSeat: firstTarget, isGatling: true },
+    log: [...gs.log, tr(`${me.name} déclenche la Tourelle Gatling — tout l'équipage est touché !`, `${me.name} triggers the Gatling Turret — the whole crew is hit!`)] });
+}
+
+async function playRavito(idx){
+  const me = state.players.find(p => p.id === state.playerId);
+  const newHand = [...me.hand];
+  newHand.splice(idx, 1);
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  let deck = gs.deck, discard = [...gs.discard, 'sp_ravito'];
+  let signalExtra = {}, signalLog = [];
+  if(deck.length < 2){
+    const r = await reshuffleWithSignal(deck, discard, gs);
+    deck = r.deck; discard = r.discard; signalExtra = r.extra; signalLog = r.logLines;
+  }
+  const drawn = deck.splice(0, 2);
+  const finalHand = [...newHand, ...drawn];
+  await sb.from('caes_players').update({ hand: finalHand }).eq('id', me.id);
+  const signalVictory = signalLog.length ? checkVictory(state.players) : null;
+  await saveGameState({ ...gs, deck, discard, ...signalExtra,
+    winner: signalVictory ? signalVictory.winner : gs.winner,
+    log: [...gs.log, ...signalLog, tr(`${me.name} active Ravitaillement et pioche 2 cartes bonus.`, `${me.name} activates Resupply and draws 2 bonus cards.`)] });
+}
+
+async function doPanique(target){
+  const me = state.players.find(p => p.id === state.playerId);
+  const newHand = [...me.hand];
+  newHand.splice(selectedCardIdx, 1);
+  selectedCardIdx = null;
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  const discard = [...gs.discard, 'sp_panique'];
+  if(!target.hand || target.hand.length === 0){
+    await sb.from('caes_players').update({ hand: newHand }).eq('id', me.id);
+    await saveGameState({ ...gs, discard, log: [...gs.log, tr(`${me.name} tente une Panique Gravitationnelle sur ${target.name}, main vide.`, `${me.name} tries Gravity Panic on ${target.name}, but their hand is empty.`)] });
+    return;
+  }
+  const stealIdx = Math.floor(Math.random() * target.hand.length);
+  const stolenCard = target.hand[stealIdx];
+  const newTargetHand = [...target.hand];
+  newTargetHand.splice(stealIdx, 1);
+  await sb.from('caes_players').update({ hand: [...newHand, stolenCard] }).eq('id', me.id);
+  await sb.from('caes_players').update({ hand: newTargetHand }).eq('id', target.id);
+  await saveGameState({ ...gs, discard, log: [...gs.log, tr(`${me.name} vole une carte à ${target.name} (Panique Gravitationnelle).`, `${me.name} steals a card from ${target.name} (Gravity Panic).`)] });
+}
+
+async function doRaid(target){
+  const me = state.players.find(p => p.id === state.playerId);
+  const newHand = [...me.hand];
+  newHand.splice(selectedCardIdx, 1);
+  selectedCardIdx = null;
+  await sb.from('caes_players').update({ hand: newHand }).eq('id', me.id);
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  let discard = [...gs.discard, 'sp_raid'];
+  if(target.hand && target.hand.length > 0){
+    const dropIdx = Math.floor(Math.random() * target.hand.length);
+    const droppedCard = target.hand[dropIdx];
+    const newTargetHand = [...target.hand];
+    newTargetHand.splice(dropIdx, 1);
+    await sb.from('caes_players').update({ hand: newTargetHand }).eq('id', target.id);
+    discard = [...discard, droppedCard];
+  }
+  await saveGameState({ ...gs, discard, log: [...gs.log, tr(`${me.name} lance un Raid Éclair sur ${target.name}, qui perd une carte.`, `${me.name} launches a Lightning Raid on ${target.name}, who loses a card.`)] });
+}
+
+async function startDuel(target){
+  const me = state.players.find(p => p.id === state.playerId);
+  const newHand = [...me.hand];
+  newHand.splice(selectedCardIdx, 1);
+  selectedCardIdx = null;
+  await sb.from('caes_players').update({ hand: newHand }).eq('id', me.id);
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  await saveGameState({ ...gs, discard: [...gs.discard, 'sp_duel'],
+    pendingDuel: { challenger: me.seat_index, target: target.seat_index, turn: target.seat_index },
+    log: [...gs.log, tr(`${me.name} lance un Duel Spatial contre ${target.name} !`, `${me.name} starts a Space Duel against ${target.name}!`)] });
+}
+
+function renderDuelBox(gs, me){
+  const box = document.getElementById('duel-box');
+  if(!gs.pendingDuel){ box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  const { challenger, target, turn } = gs.pendingDuel;
+  const challengerP = state.players.find(p => p.seat_index === challenger);
+  const targetP = state.players.find(p => p.seat_index === target);
+  if(!challengerP || !targetP){ box.style.display = 'none'; return; }
+  if(turn === me.seat_index){
+    const hasTir = me.hand.includes('tir');
+    box.innerHTML = `<div class="pending-text">⚔️ ${tr('Duel Spatial','Space Duel')} : ${escapeHtml(challengerP.name)} vs ${escapeHtml(targetP.name)} — ${tr("à toi de répondre !","your move!")}</div>
+      <div class="pending-actions">
+        <button class="btn" id="btn-duel-continue" ${hasTir ? '' : 'disabled'}>🔫 ${tr('Jouer Tir!','Play Shoot!')}</button>
+        <button class="btn" id="btn-duel-yield">💥 ${tr('Encaisser','Take the hit')}</button>
+      </div>`;
+    document.getElementById('btn-duel-continue').onclick = () => duelRespond(true);
+    document.getElementById('btn-duel-yield').onclick = () => duelRespond(false);
+  } else {
+    const waitingOn = state.players.find(p => p.seat_index === turn);
+    box.innerHTML = `<div class="pending-text">⚔️ ${tr('Duel Spatial','Space Duel')} : ${escapeHtml(challengerP.name)} vs ${escapeHtml(targetP.name)} — ${tr("en attente de","waiting on")} ${waitingOn ? escapeHtml(waitingOn.name) : '…'}</div>`;
+  }
+}
+
+async function duelRespond(continued){
+  const room = await fetchRoom();
+  const gs = room.game_state;
+  if(!gs.pendingDuel) return;
+  const me = state.players.find(p => p.id === state.playerId);
+  const { challenger, target, turn } = gs.pendingDuel;
+  if(turn !== me.seat_index) return;
+
+  if(continued){
+    const tirIdx = me.hand.indexOf('tir');
+    if(tirIdx === -1) return;
+    const newHand = [...me.hand];
+    newHand.splice(tirIdx, 1);
+    await sb.from('caes_players').update({ hand: newHand }).eq('id', me.id);
+    const otherSeat = turn === challenger ? target : challenger;
+    await saveGameState({ ...gs, discard: [...gs.discard, 'tir'],
+      pendingDuel: { challenger, target, turn: otherSeat },
+      log: [...gs.log, tr(`${me.name} riposte dans le duel !`, `${me.name} fires back in the duel!`)] });
+  } else {
+    const maxLife = getMaxLife(me.character, me.role);
+    const newLife = Math.max(0, me.life - 1);
+    const meUpdate = { life: newLife, is_alive: newLife > 0 };
+    let log = [...gs.log, tr(`${me.name} encaisse et perd le Duel Spatial (${newLife}/${maxLife}).`, `${me.name} takes the hit and loses the Space Duel (${newLife}/${maxLife}).`)];
+    let lootedCard = null;
+    if(newLife <= 0 && me.hand && me.hand.length > 0){
+      const opponentSeat = turn === challenger ? target : challenger;
+      const opponent = state.players.find(p => p.seat_index === opponentSeat);
+      const lootIdx = Math.floor(Math.random() * me.hand.length);
+      lootedCard = me.hand[lootIdx];
+      const remainingHand = [...me.hand];
+      remainingHand.splice(lootIdx, 1);
+      meUpdate.hand = remainingHand;
+      if(opponent){
+        await sb.from('caes_players').update({ hand: [...opponent.hand, lootedCard] }).eq('id', opponent.id);
+        log.push(tr(`${opponent.name} pille une carte sur l'épave de ${me.name}.`, `${opponent.name} loots a card from ${me.name}'s wreck.`));
+      }
+    }
+    await sb.from('caes_players').update(meUpdate).eq('id', me.id);
+    if(newLife <= 0) log.push(tr(`💀 ${me.name} est éliminé.`, `💀 ${me.name} is eliminated.`));
+    await refreshPlayers();
+    const victory = checkVictory(state.players);
+    await saveGameState({ ...gs, pendingDuel: null, log, winner: victory ? victory.winner : null });
+  }
+}
+
+function checkVictory(players){
+  const amiral = players.find(p => p.role === 'amiral');
+  if(amiral && !amiral.is_alive) return { winner: 'pirates' };
+  const alive = players.filter(p => p.is_alive);
+  if(alive.length === 1) return { winner: alive[0].role === 'amiral' ? 'amiral' : alive[0].role };
+  return null;
+}
+
+async function endTurn(gs, me){
+  selectedCardIdx = null;
+  powerRangeMode = false;
+  const handLimit = getHandLimit(me.character, me.life);
+  if((me.hand || []).length > handLimit){
+    const trimmed = me.hand.slice(0, handLimit);
+    const discarded = me.hand.slice(handLimit);
+    await sb.from('caes_players').update({ hand: trimmed }).eq('id', me.id);
+    const room = await fetchRoom();
+    const gs2 = room.game_state;
+    await saveGameState({ ...gs2, discard: [...gs2.discard, ...discarded],
+      log: [...gs2.log, tr(`${me.name} défausse ${discarded.length} carte(s).`, `${me.name} discards ${discarded.length} card(s).`)] });
+  }
+  const order = getAliveOrderedSeats(state.players);
+  const curIdx = order.indexOf(me.seat_index);
+  let nextSeat = order[(curIdx + 1) % order.length];
+  const room = await fetchRoom();
+  const gs3 = room.game_state;
+  let extraLog = [];
+  let stasedSeat = gs3.stasedSeat;
+  if(stasedSeat === nextSeat){
+    const stasedPlayer = state.players.find(p => p.seat_index === nextSeat);
+    extraLog.push(tr(`🧊 ${stasedPlayer ? stasedPlayer.name : 'Le joueur figé'} est immobilisé et passe son tour.`, `🧊 ${stasedPlayer ? stasedPlayer.name : 'The frozen player'} is immobilized and skips their turn.`));
+    const idx2 = order.indexOf(nextSeat);
+    nextSeat = order[(idx2 + 1) % order.length];
+    stasedSeat = null;
+  }
+  await saveGameState({ ...gs3, turnSeat: nextSeat, phase: 'draw', turnSwapCount: 0, stasedSeat, rangeModifier: 0,
+    skaiBonusUsedThisTurn: false, miloDrawUsedThisTurn: false,
+    log: [...gs3.log, tr(`Fin de tour de ${me.name}.`, `${me.name}'s turn ends.`), ...extraLog] });
+}
+
+function renderWinner(gs){
+  showScreen('screen-game');
+  const orbitEl = document.getElementById('orbit-3');
+  const banner = document.getElementById('turn-banner');
+  const pending = document.getElementById('pending-box');
+  const log = document.getElementById('log-feed');
+  const hand = document.getElementById('hand-area');
+  const actionBar = document.getElementById('action-bar');
+  const powerPanel = document.getElementById('power-panel');
+  pending.style.display = 'none'; hand.innerHTML = ''; actionBar.innerHTML = ''; banner.textContent = '';
+  powerPanel.innerHTML = '';
+  renderOrbitGame(gs);
+  const labels = { amiral: { icon:'👑', text: tr("L'AMIRAL A GAGNÉ","THE ADMIRAL HAS WON") },
+    pirates: { icon:'☠️', text: tr('LES PIRATES ONT GAGNÉ','THE PIRATES HAVE WON') },
+    mercenaire: { icon:'🌀', text: tr('LE MERCENAIRE A GAGNÉ','THE MERCENARY HAS WON') } };
+  const info = labels[gs.winner] || { icon:'🏆', text: tr('Partie terminée','Game over') };
+  log.innerHTML = `<div class="winner-banner"><div class="w-icon">${info.icon}</div>
+    <div class="w-title">${info.text}</div></div>`;
+}
+
+function shuffle(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+/* ---------- Realtime ---------- */
+function subscribeRealtime(){
+  if(state.channel) return;
+  state.channel = sb.channel('room-' + state.roomId)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'caes_players',
+        filter: `room_id=eq.${state.roomId}` }, async () => {
+      await refreshPlayers();
+      const me = state.players.find(p => p.id === state.playerId);
+      if(!me) return;
+      if(document.getElementById('screen-game').classList.contains('active')){
+        renderGame();
+      } else if(me.role){
+        showRoleScreen(me);
+      } else {
+        renderOrbit('orbit', state.players, false);
+        updateLobbyStatus();
+      }
+    })
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'caes_rooms',
+        filter: `id=eq.${state.roomId}` }, async (payload) => {
+      if(payload.new.status === 'playing'){
+        await refreshPlayers();
+        const me = state.players.find(p => p.id === state.playerId);
+        if(!me) return;
+        const onRoleOrGame = document.getElementById('screen-role').classList.contains('active') ||
+          document.getElementById('screen-game').classList.contains('active');
+        if(document.getElementById('screen-game').classList.contains('active')){
+          renderGame();
+        } else if(!onRoleOrGame && me.role){
+          showRoleScreen(me);
+        }
+      }
+    })
+    .subscribe();
+}
+
+function showRoleScreen(me){
+  const info = ROLE_INFO[me.role];
+  const card = document.getElementById('role-card');
+  card.className = 'role-card ' + info.cls;
+  document.getElementById('role-icon').textContent = info.icon;
+  document.getElementById('role-name').textContent = L(info.name);
+  document.getElementById('role-desc').textContent = L(info.desc);
+
+  const ch = getChar(me.character);
+  const charEl = document.getElementById('char-reveal');
+  if(ch){
+    charEl.innerHTML = `<div class="cr-name">${ch.icon} ${L(ch.name)}</div><div class="cr-power">${L(ch.power)}</div>`;
+  } else {
+    charEl.innerHTML = '';
+  }
+
+  renderOrbit('orbit-2', state.players, true);
+  showScreen('screen-role');
+}
+</script>
+</body>
+</html>
